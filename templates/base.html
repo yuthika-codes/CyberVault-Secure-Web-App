@@ -92,6 +92,14 @@
         window.togglePassword = function(inputId, iconElement) {
             var input = document.getElementById(inputId);
             if (!input) return;
+
+            if (!iconElement) {
+                var parent = input.closest(".password-box") || input.parentElement;
+                if (parent) {
+                    iconElement = parent.querySelector(".toggle-password, i.fa-eye, i.fa-eye-slash");
+                }
+            }
+
             if (input.type === "password") {
                 input.type = "text";
                 if (iconElement) {
@@ -107,11 +115,11 @@
             }
         };
 
-        // Attach click listeners to all toggle-password icons automatically
+        // Automatic fallback listener attachment for all password toggle elements
         document.addEventListener("DOMContentLoaded", function() {
-            var toggles = document.querySelectorAll(".toggle-password");
+            var toggles = document.querySelectorAll(".toggle-password, [data-toggle-password]");
             toggles.forEach(function(toggle) {
-                toggle.addEventListener("click", function() {
+                toggle.addEventListener("click", function(e) {
                     var parent = toggle.closest(".password-box") || toggle.parentElement;
                     if (parent) {
                         var input = parent.querySelector("input");
