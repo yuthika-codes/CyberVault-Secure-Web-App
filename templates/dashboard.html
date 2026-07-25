@@ -21,7 +21,7 @@
                 {% else %}
                     <span class="badge bg-primary p-2 px-3 fs-6"><i class="fa-solid fa-user me-1"></i> USER</span>
                 {% endif %}
-                <span class="status-badge"><i class="fa-solid fa-lock text-success me-1"></i> AES-256 Protected</span>
+                <span class="status-badge"><i class="fa-solid fa-lock text-success me-1"></i> AES-256 & JWT Active</span>
             </div>
         </div>
     </div>
@@ -31,7 +31,7 @@
         <ul class="nav nav-tabs custom-tabs" id="internTab" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button" role="tab">
-                    <i class="fa-solid fa-vault me-2"></i> 1. Password & Secret Vault
+                    <i class="fa-solid fa-key me-2"></i> 1. Password Security & Leak Scanner
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -50,87 +50,43 @@
     <!-- TAB CONTENT -->
     <div class="tab-content custom-tab-content" id="internTabContent">
 
-        <!-- ================= TAB 1: PASSWORD & SECRET VAULT ================= -->
+        <!-- ================= TAB 1: PASSWORD SECURITY & LEAK SCANNER ================= -->
         <div class="tab-pane fade show active" id="vault" role="tabpanel">
-            <div class="row g-4">
-                <!-- ADD SECRET FORM -->
-                <div class="col-lg-5">
-                    <div class="soc-card">
-                        <h3 class="text-cyan mb-3">
-                            <i class="fa-solid fa-plus-circle me-2"></i> Add Password or Key
-                        </h3>
-                        <p class="text-light-slate small mb-4">
-                            Entries are automatically encrypted with <strong>AES-256 encryption</strong> before storing in the database.
-                        </p>
-                        <form action="{{ url_for('vault_add') }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label-access">Title / Name</label>
-                                <input type="text" name="title" class="form-input" placeholder="e.g. Gmail Password or API Key" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label-access">Category</label>
-                                <select name="category" class="form-input">
-                                    <option value="Password">Password</option>
-                                    <option value="API Key">API Key</option>
-                                    <option value="Private Note">Private Note</option>
-                                </select>
-                            </div>
-                            <div class="mb-4">
-                                <label class="form-label-access">Secret Value</label>
-                                <textarea name="raw_secret" class="form-input" rows="3" placeholder="Enter sensitive password or key..." required></textarea>
-                            </div>
-                            <button type="submit" class="btn w-100">
-                                <i class="fa-solid fa-lock me-2"></i> Save & Encrypt Secret
-                            </button>
-                        </form>
-                    </div>
-                </div>
+            <div class="soc-card">
+                <h3 class="text-cyan mb-2">
+                    <i class="fa-solid fa-key me-2"></i> Password Security & Leak Scanner
+                </h3>
+                <p class="text-light-slate mb-4">
+                    Scan passwords for <strong>weak length</strong>, <strong>known data breaches</strong>, and <strong>brute-force crack time estimates</strong>.
+                </p>
 
-                <!-- VAULT SECRET LIST -->
-                <div class="col-lg-7">
-                    <div class="soc-card">
-                        <h3 class="text-cyan mb-3">
-                            <i class="fa-solid fa-vault me-2"></i> Saved Vault Credentials ({{ secrets|length }})
-                        </h3>
-                        {% if not secrets %}
-                            <div class="text-center py-5">
-                                <i class="fa-solid fa-box-open fa-3x mb-3 text-cyan"></i>
-                                <p class="text-light-slate fs-5">No secrets saved yet. Add your first password on the left!</p>
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <label class="form-label-access mb-2">Candidate Password to Scan</label>
+                        <div class="position-relative mb-3">
+                            <input type="password" id="pwdScanInput" class="form-input pe-5" placeholder="Enter password to evaluate security strength...">
+                            <i class="fa-solid fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-light-slate cursor-pointer" onclick="toggleScanPasswordVisibility('pwdScanInput', this)" style="cursor: pointer;"></i>
+                        </div>
+
+                        <div class="d-flex gap-2 mb-3 flex-wrap">
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('weak')">🔴 Weak / Leaked (123456)</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('medium')">🟡 Medium (Password12)</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('strong')">🟢 Strong (CyberV@ult#2026!)</button>
+                        </div>
+
+                        <button type="button" class="btn w-100" onclick="runPasswordScan()">
+                            <i class="fa-solid fa-shield-halved me-2"></i> Scan Password Security & Leak Risk
+                        </button>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <label class="form-label-access mb-2">Security Evaluation Report</label>
+                        <div class="bg-black p-4 rounded border border-secondary" id="pwdScanResultsBox" style="min-height: 220px;">
+                            <div class="text-light-slate text-center py-4">
+                                <i class="fa-solid fa-shield-cat fa-2x mb-2 text-cyan"></i><br>
+                                Enter a password and click <strong>"Scan Password Security & Leak Risk"</strong>.
                             </div>
-                        {% else %}
-                            <div class="vault-list">
-                                {% for item in secrets %}
-                                    <div class="vault-item-card mb-3 p-3 border rounded-3 bg-dark-slate">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <div>
-                                                <span class="badge bg-info text-dark font-weight-bold me-2">{{ item.category }}</span>
-                                                <strong class="fs-5 text-white">{{ item.title }}</strong>
-                                            </div>
-                                            <form action="{{ url_for('vault_delete', secret_id=item.id) }}" method="POST" class="d-inline">
-                                                <button type="submit" class="btn-icon-danger" title="Delete" onclick="return confirm('Delete this secret?')">
-                                                    <i class="fa-solid fa-trash fa-lg"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                        <div class="secret-value-box p-3 rounded bg-black d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                            <code id="secret-val-{{ item.id }}" class="text-warning fs-6" data-hidden="true" data-secret="{{ item.decrypted_value }}">••••••••••••••••••••</code>
-                                            <div class="d-flex gap-2">
-                                                <button type="button" class="btn-vault-action btn-vault-show" onclick="toggleSecretDisplay({{ item.id }})">
-                                                    <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> <span id="eye-text-{{ item.id }}">Show</span>
-                                                </button>
-                                                <button type="button" class="btn-vault-action btn-vault-copy" onclick="copySecretToClipboard({{ item.id }})">
-                                                    <i class="fa-solid fa-copy me-1"></i> Copy
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 xsmall d-flex justify-content-between text-light-slate">
-                                            <span><i class="fa-solid fa-shield text-success me-1"></i> AES-256 Encrypted</span>
-                                            <span>Date: {{ item.created_at }}</span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -282,56 +238,103 @@
 
 <!-- INLINE JAVASCRIPT FOR SECURE FUNCTIONALITY -->
 <script>
-function toggleSecretDisplay(id) {
-    var el = document.getElementById("secret-val-" + id);
-    var icon = document.getElementById("eye-icon-" + id);
-    var textSpan = document.getElementById("eye-text-" + id);
-    if (!el) return;
-
-    var isHidden = el.getAttribute("data-hidden") === "true";
-    var secretVal = el.getAttribute("data-secret");
-
-    if (isHidden) {
-        el.textContent = secretVal;
-        el.setAttribute("data-hidden", "false");
-        if (icon) icon.className = "fa-solid fa-eye-slash";
-        if (textSpan) textSpan.textContent = "Hide";
+function toggleScanPasswordVisibility(inputId, iconElement) {
+    var input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === "password") {
+        input.type = "text";
+        iconElement.classList.remove("fa-eye");
+        iconElement.classList.add("fa-eye-slash");
     } else {
-        el.textContent = "••••••••••••••••••••";
-        el.setAttribute("data-hidden", "true");
-        if (icon) icon.className = "fa-solid fa-eye";
-        if (textSpan) textSpan.textContent = "Show";
+        input.type = "password";
+        iconElement.classList.remove("fa-eye-slash");
+        iconElement.classList.add("fa-eye");
     }
 }
 
-function copySecretToClipboard(id) {
-    var el = document.getElementById("secret-val-" + id);
-    if (!el) return;
-    var secretVal = el.getAttribute("data-secret");
-
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(secretVal).then(function() {
-            alert("Secret copied to clipboard!");
-        }).catch(function() {
-            fallbackCopyText(secretVal);
-        });
-    } else {
-        fallbackCopyText(secretVal);
+function setPresetPassword(type) {
+    var input = document.getElementById("pwdScanInput");
+    if (!input) return;
+    if (type === 'weak') {
+        input.value = "123456";
+    } else if (type === 'medium') {
+        input.value = "Password12";
+    } else if (type === 'strong') {
+        input.value = "CyberV@ult#2026!";
     }
 }
 
-function fallbackCopyText(text) {
-    var textArea = document.createElement("textarea");
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-        document.execCommand('copy');
-        alert("Secret copied to clipboard!");
-    } catch (err) {
-        alert("Unable to copy secret");
+function runPasswordScan() {
+    var input = document.getElementById("pwdScanInput");
+    var box = document.getElementById("pwdScanResultsBox");
+    if (!input || !box) return;
+
+    var pwdVal = input.value;
+    if (!pwdVal || !pwdVal.trim()) {
+        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a password to scan!</div>';
+        return;
     }
-    document.body.removeChild(textArea);
+
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing password entropy, wordlists, and crack time...</div>';
+
+    fetch("/api/password-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pwdVal })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        var statusBadgeClass = "bg-success";
+        var statusIcon = "fa-shield-check";
+
+        if (data.status.indexOf("WEAK") !== -1 || data.status.indexOf("LEAKED") !== -1) {
+            statusBadgeClass = "bg-danger";
+            statusIcon = "fa-triangle-exclamation";
+        } else if (data.status === "FAIR") {
+            statusBadgeClass = "bg-warning text-dark";
+            statusIcon = "fa-circle-exclamation";
+        } else if (data.status === "GOOD") {
+            statusBadgeClass = "bg-info text-dark";
+            statusIcon = "fa-circle-check";
+        }
+
+        var issuesHtml = "";
+        if (!data.issues || data.issues.length === 0) {
+            issuesHtml = '<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>STRONG PASSWORD:</strong> No security vulnerabilities or common leak patterns found.</div>';
+        } else {
+            for (var i = 0; i < data.issues.length; i++) {
+                var iss = data.issues[i];
+                var badgeColor = (iss.severity === 'CRITICAL' || iss.severity === 'HIGH') ? 'bg-danger' : 'bg-warning text-dark';
+                issuesHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + iss.severity + '</span> <strong>' + iss.rule + ':</strong> ' + iss.description + '</div>';
+            }
+        }
+
+        var comp = data.complexity || {};
+        var compHtml = '<div class="d-flex gap-2 my-2 flex-wrap fs-6">' +
+            '<span>Upper: ' + (comp.has_upper ? '🟢 Yes' : '🔴 No') + '</span> | ' +
+            '<span>Lower: ' + (comp.has_lower ? '🟢 Yes' : '🔴 No') + '</span> | ' +
+            '<span>Number: ' + (comp.has_digit ? '🟢 Yes' : '🔴 No') + '</span> | ' +
+            '<span>Symbol: ' + (comp.has_symbol ? '🟢 Yes' : '🔴 No') + '</span>' +
+            '</div>';
+
+        var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
+            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + data.status + '</span></div>' +
+            '<div class="text-white fs-6">Score: <strong class="fs-5 text-cyan">' + data.score + '/100</strong></div>' +
+            '</div>' +
+            '<div class="mb-3 text-light-slate small">' +
+            '<strong>Length:</strong> ' + data.length + ' characters | <strong>Crack Time:</strong> <strong class="text-warning">' + data.crack_time + '</strong>' +
+            '</div>' +
+            compHtml +
+            issuesHtml +
+            '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
+            '<strong>Security Recommendation:</strong> ' + data.recommendation +
+            '</div>';
+
+        box.innerHTML = html;
+    })
+    .catch(function(err) {
+        box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
+    });
 }
 
 function setPresetUrl(type) {

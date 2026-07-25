@@ -473,6 +473,150 @@ def api_secure_data():
 
 
 # ==========================
+# Password Security & Breach Scanner API
+# ==========================
+
+COMMONLY_BREACHED_PASSWORDS = {
+    "123456", "password", "123456789", "12345678", "12345", "1234567",
+    "qwerty", "1234567890", "111111", "123123", "secret", "admin",
+    "welcome", "login", "password1", "password123", "letmein", "monkey",
+    "dragon", "master", "p@ssword", "abc123", "trustno1", "football",
+    "shadow", "sunshine", "iloveyou", "princess", "superman"
+}
+
+@app.route("/api/password-scan", methods=["POST"])
+def api_password_scan():
+    """Password Security & Breach Scanner API."""
+    import math
+    data = request.get_json(silent=True, force=True)
+    if not data or not isinstance(data, dict):
+        data = request.form
+
+    test_password = (data.get("password") or "").strip()
+    if not test_password:
+        return jsonify({
+            "status": "ERROR",
+            "score": 0,
+            "crack_time": "Instant",
+            "issues": [{"rule": "Empty Input", "description": "Please enter a password to scan."}],
+            "recommendation": "Enter a password to evaluate its strength and breach risk."
+        }), 400
+
+    pwd_lower = test_password.lower()
+    issues = []
+    score = 100
+
+    # 1. Known Breach / Weak Wordlist Check
+    if pwd_lower in COMMONLY_BREACHED_PASSWORDS or any(w in pwd_lower for w in ["123456", "password", "qwerty", "admin", "welcome"]):
+        score -= 60
+        issues.append({
+            "rule": "Known Breached / Common Password",
+            "severity": "CRITICAL",
+            "description": "Password appears in public data breaches and common dictionary attack lists."
+        })
+
+    # 2. Length Check
+    length = len(test_password)
+    if length < 8:
+        score -= 30
+        issues.append({
+            "rule": "Short Password Length",
+            "severity": "HIGH",
+            "description": f"Password is too short ({length} chars). Minimum recommended length is 12+ characters."
+        })
+    elif length < 12:
+        score -= 10
+        issues.append({
+            "rule": "Moderate Password Length",
+            "severity": "MEDIUM",
+            "description": f"Length is {length} characters. Increasing to 14+ characters significantly boosts crack time."
+        })
+
+    # 3. Character Complexity Checks
+    has_upper = bool(re.search(r"[A-Z]", test_password))
+    has_lower = bool(re.search(r"[a-z]", test_password))
+    has_digit = bool(re.search(r"\d", test_password))
+    has_symbol = bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?~`]", test_password))
+
+    if not has_upper:
+        score -= 10
+        issues.append({"rule": "Missing Uppercase", "severity": "LOW", "description": "Add uppercase letters (A-Z)."})
+    if not has_lower:
+        score -= 10
+        issues.append({"rule": "Missing Lowercase", "severity": "LOW", "description": "Add lowercase letters (a-z)."})
+    if not has_digit:
+        score -= 10
+        issues.append({"rule": "Missing Numbers", "severity": "LOW", "description": "Add numbers (0-9)."})
+    if not has_symbol:
+        score -= 15
+        issues.append({"rule": "Missing Symbols", "severity": "MEDIUM", "description": "Add special symbols (!@#$%^&*)."})
+
+    # 4. Pattern & Repeat Analysis
+    if re.search(r"(.)\1{2,}", test_password):
+        score -= 10
+        issues.append({"rule": "Repeated Characters", "severity": "LOW", "description": "Avoid repeating characters (e.g. 'aaa')."})
+
+    if re.search(r"(123|234|345|456|567|678|789|abc|bcd|cde|qwer|asdf)", pwd_lower):
+        score -= 15
+        issues.append({"rule": "Sequential Pattern", "severity": "MEDIUM", "description": "Contains predictable sequence ('123' or 'qwerty')."})
+
+    score = max(0, min(100, score))
+
+    # Calculate estimated crack time
+    charset_size = 0
+    if has_lower: charset_size += 26
+    if has_upper: charset_size += 26
+    if has_digit: charset_size += 10
+    if has_symbol: charset_size += 32
+    if charset_size == 0: charset_size = 26
+
+    guesses = (charset_size ** length) / 2
+    seconds = guesses / 10_000_000_000  # 10 billion guesses/sec
+
+    if score < 40 or seconds < 1:
+        crack_time = "Instant (< 1 second)"
+        status = "WEAK / LEAKED"
+        recommendation = "CRITICAL: Change this password immediately! Use a combination of uppercase, numbers, and symbols."
+    elif seconds < 60:
+        crack_time = f"{int(seconds)} seconds"
+        status = "WEAK"
+        recommendation = "Weak password! Easily cracked by automated brute-force scripts."
+    elif seconds < 3600:
+        crack_time = f"{int(seconds // 60)} minutes"
+        status = "FAIR"
+        recommendation = "Fair password, but vulnerable to targeted dictionary attacks."
+    elif seconds < 86400 * 365:
+        crack_time = f"{int(seconds // 86400)} days"
+        status = "GOOD"
+        recommendation = "Good password. Consider increasing length for maximum longevity."
+    else:
+        years = int(seconds // (86400 * 365))
+        if years > 1_000_000:
+            crack_time = "1,000,000+ Years"
+        else:
+            crack_time = f"{years:,} Years"
+        status = "STRONG"
+        recommendation = "EXCELLENT! High entropy password resistant to brute-force attacks."
+
+    log_security_event(f"Password Scan Executed (Status: {status}, Score: {score}/100)")
+
+    return jsonify({
+        "status": status,
+        "score": score,
+        "length": length,
+        "crack_time": crack_time,
+        "complexity": {
+            "has_upper": has_upper,
+            "has_lower": has_lower,
+            "has_digit": has_digit,
+            "has_symbol": has_symbol
+        },
+        "issues": issues,
+        "recommendation": recommendation
+    })
+
+
+# ==========================
 # Phishing & Safe URL Scanner API
 # ==========================
 

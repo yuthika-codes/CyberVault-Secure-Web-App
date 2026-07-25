@@ -140,6 +140,22 @@ class CyberVaultRequirement5TestCase(unittest.TestCase):
         self.assertEqual(safe_data['status'], 'SAFE')
         self.assertEqual(safe_data['threat_score'], 100)
 
+    def test_password_security_and_leak_scanner(self):
+        """Test Password Security Scanner API detecting weak vs strong passwords."""
+        # Test Weak Leaked Password
+        weak_res = self.app.post('/api/password-scan', json={'password': '123456'})
+        self.assertEqual(weak_res.status_code, 200)
+        weak_data = json.loads(weak_res.data)
+        self.assertIn('WEAK', weak_data['status'])
+        self.assertLess(weak_data['score'], 50)
+
+        # Test Strong Password
+        strong_res = self.app.post('/api/password-scan', json={'password': 'CyberV@ult#2026!'})
+        self.assertEqual(strong_res.status_code, 200)
+        strong_data = json.loads(strong_res.data)
+        self.assertEqual(strong_data['status'], 'STRONG')
+        self.assertGreaterEqual(strong_data['score'], 90)
+
     def test_oauth_google_sso_flow(self):
         """Test simulated Google OAuth 2.0 SSO sign-in."""
         response = self.app.get('/auth/oauth/google', follow_redirects=True)
