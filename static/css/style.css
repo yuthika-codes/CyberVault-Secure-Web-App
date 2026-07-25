@@ -594,6 +594,41 @@ main {
 .btn-outline-cyan:hover { background: var(--accent-cyan); color: #000; }
 .xsmall { font-size: 13px; }
 
+.btn-vault-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-vault-show {
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.5);
+}
+
+.btn-vault-show:hover {
+    background: #38bdf8;
+    color: #000000;
+}
+
+.btn-vault-copy {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-vault-copy:hover {
+    background: #ffffff;
+    color: #000000;
+}
+
 /* Table legibility */
 .table { color: #ffffff !important; }
 .table th { color: var(--accent-cyan) !important; font-weight: 700; }

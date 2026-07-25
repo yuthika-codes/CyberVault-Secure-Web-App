@@ -29,18 +29,18 @@
     <!-- SIMPLE 3-TAB NAVIGATION -->
     <div class="soc-nav-tabs mb-4">
         <ul class="nav nav-tabs custom-tabs" id="internTab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button" role="tab" aria-controls="vault" aria-selected="true">
                     <i class="fa-solid fa-vault me-2"></i> 1. Password & Secret Vault
                 </button>
             </li>
-            <li class="nav-item">
-                <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab" aria-controls="scanner" aria-selected="false">
                     <i class="fa-solid fa-bug-slash me-2"></i> 2. Security Vulnerability Scanner
                 </button>
             </li>
-            <li class="nav-item">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">
                     <i class="fa-solid fa-list-check me-2"></i> 3. Security Activity Logs
                 </button>
             </li>
@@ -51,7 +51,7 @@
     <div class="tab-content custom-tab-content" id="internTabContent">
 
         <!-- ================= TAB 1: PASSWORD & SECRET VAULT ================= -->
-        <div class="tab-pane fade show active" id="vault" role="tabpanel">
+        <div class="tab-pane fade show active" id="vault" role="tabpanel" aria-labelledby="vault-tab">
             <div class="row g-4">
                 <!-- ADD SECRET FORM -->
                 <div class="col-lg-5">
@@ -112,14 +112,14 @@
                                                 </button>
                                             </form>
                                         </div>
-                                        <div class="secret-value-box p-3 rounded bg-black d-flex align-items-center justify-content-between">
+                                        <div class="secret-value-box p-3 rounded bg-black d-flex align-items-center justify-content-between flex-wrap gap-2">
                                             <code id="secret-val-{{ item.id }}" class="text-warning fs-6">••••••••••••••••••••</code>
-                                            <div>
-                                                <button type="button" class="btn-sm btn-outline-cyan me-1" onclick="toggleSecretDisplay({{ item.id }}, '{{ item.decrypted_value }}')">
-                                                    <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> Show
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn-vault-action btn-vault-show" onclick="toggleSecretDisplay({{ item.id }}, '{{ item.decrypted_value }}')">
+                                                    <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> <span id="eye-text-{{ item.id }}">Show</span>
                                                 </button>
-                                                <button type="button" class="btn-sm btn-outline-light" onclick="copyToClipboard('{{ item.decrypted_value }}')">
-                                                    <i class="fa-solid fa-copy"></i> Copy
+                                                <button type="button" class="btn-vault-action btn-vault-copy" onclick="copyToClipboard('{{ item.decrypted_value }}')">
+                                                    <i class="fa-solid fa-copy me-1"></i> Copy
                                                 </button>
                                             </div>
                                         </div>
@@ -137,7 +137,7 @@
         </div>
 
         <!-- ================= TAB 2: SECURITY VULNERABILITY SCANNER ================= -->
-        <div class="tab-pane fade" id="scanner" role="tabpanel">
+        <div class="tab-pane fade" id="scanner" role="tabpanel" aria-labelledby="scanner-tab">
             <div class="soc-card">
                 <h3 class="text-cyan mb-2">
                     <i class="fa-solid fa-bug-slash me-2"></i> Security Input Scanner (OWASP Top 10)
@@ -164,7 +164,7 @@
 
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Scan Results</label>
-                        <div class="bg-black p-4 rounded border" id="scanResultsBox" style="min-height: 200px;">
+                        <div class="bg-black p-4 rounded border border-secondary" id="scanResultsBox" style="min-height: 220px;">
                             <div class="text-light-slate text-center py-4">Click "Scan Input for Vulnerabilities" to see security results.</div>
                         </div>
                     </div>
@@ -173,7 +173,7 @@
         </div>
 
         <!-- ================= TAB 3: SECURITY AUDIT LOGS ================= -->
-        <div class="tab-pane fade" id="logs" role="tabpanel">
+        <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
             <!-- USER AUDIT LOGS -->
             <div class="soc-card mb-4">
                 <h3 class="text-cyan mb-3">
@@ -281,72 +281,87 @@
 {% block scripts %}
 <script>
 function toggleSecretDisplay(id, val) {
-    const el = document.getElementById("secret-val-" + id);
-    const icon = document.getElementById("eye-icon-" + id);
+    var el = document.getElementById("secret-val-" + id);
+    var icon = document.getElementById("eye-icon-" + id);
+    var textSpan = document.getElementById("eye-text-" + id);
+    
     if (el.textContent === "••••••••••••••••••••") {
         el.textContent = val;
         icon.className = "fa-solid fa-eye-slash";
+        if (textSpan) textSpan.textContent = "Hide";
     } else {
         el.textContent = "••••••••••••••••••••";
         icon.className = "fa-solid fa-eye";
+        if (textSpan) textSpan.textContent = "Show";
     }
 }
 
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert("Copied to clipboard!");
-    }).catch(err => {
-        console.error("Copy failed: ", err);
-    });
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function() {
+            alert("Copied to clipboard!");
+        }).catch(function(err) {
+            console.error("Copy error:", err);
+        });
+    } else {
+        alert("Clipboard copy not supported by browser.");
+    }
 }
 
 function setPresetPayload(type) {
-    const input = document.getElementById("scanInput");
-    if (type === 'sqli') input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
-    if (type === 'xss') input.value = "<script>alert('XSS Test')</script>";
-    if (type === 'safe') input.value = "Welcome to CyberVault Security Application";
+    var input = document.getElementById("scanInput");
+    if (type === 'sqli') {
+        input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
+    } else if (type === 'xss') {
+        input.value = "<script>alert('XSS Test')</script>";
+    } else if (type === 'safe') {
+        input.value = "Welcome to CyberVault Security Application";
+    }
 }
 
 function runOwaspScan() {
-    const inputVal = document.getElementById("scanInput").value;
-    const box = document.getElementById("scanResultsBox");
+    var inputVal = document.getElementById("scanInput").value;
+    var box = document.getElementById("scanResultsBox");
 
-    if (!inputVal.trim()) {
-        box.innerHTML = `<div class="text-warning font-weight-bold">Please enter text to scan!</div>`;
+    if (!inputVal || !inputVal.trim()) {
+        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text to scan!</div>';
         return;
     }
 
-    box.innerHTML = `<div class="text-cyan font-weight-bold"><i class="fa-solid fa-spinner fa-spin me-2"></i> Scanning payload for threats...</div>`;
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Scanning payload for threats...</div>';
 
     fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input_text: inputVal })
     })
-    .then(res => res.json())
-    .then(data => {
-        let threatHtml = "";
-        if (data.threats_found.length === 0) {
-            threatHtml = `<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>SAFE:</strong> No threats detected in input!</div>`;
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        var threatHtml = "";
+        if (!data.threats_found || data.threats_found.length === 0) {
+            threatHtml = '<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>SAFE:</strong> No threats detected in input!</div>';
         } else {
-            data.threats_found.forEach(t => {
-                threatHtml += `<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> <strong>[${t.type}]</strong> ${t.description}</div>`;
-            });
+            for (var i = 0; i < data.threats_found.length; i++) {
+                var t = data.threats_found[i];
+                threatHtml += '<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> <strong>[' + t.type + ']</strong> ' + t.description + '</div>';
+            }
         }
 
-        box.innerHTML = `
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fs-5 text-white">Status: <strong class="${data.status === 'SAFE' ? 'text-success' : 'text-danger'}">${data.status}</strong></span>
-                <span class="fs-5 text-white">Score: <strong class="${data.threat_score >= 80 ? 'text-success' : 'text-danger'}">${data.threat_score}/100</strong></span>
-            </div>
-            ${threatHtml}
-            <div class="small text-light-slate mt-2 border-top border-secondary pt-2">
-                <strong>Protection Note:</strong> ${data.recommendation}
-            </div>
-        `;
+        var statusClass = (data.status === 'SAFE') ? 'text-success' : 'text-danger';
+        var scoreClass = (data.threat_score >= 80) ? 'text-success' : 'text-danger';
+
+        var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
+            '<span class="fs-5 text-white">Status: <strong class="' + statusClass + '">' + data.status + '</strong></span>' +
+            '<span class="fs-5 text-white">Score: <strong class="' + scoreClass + '">' + data.threat_score + '/100</strong></span>' +
+            '</div>' + threatHtml +
+            '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
+            '<strong>Protection Note:</strong> ' + data.recommendation +
+            '</div>';
+
+        box.innerHTML = html;
     })
-    .catch(err => {
-        box.innerHTML = `<div class="text-danger">Scan error: ${err}</div>`;
+    .catch(function(err) {
+        box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
     });
 }
 </script>
