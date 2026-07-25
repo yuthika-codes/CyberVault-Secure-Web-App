@@ -20,18 +20,30 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <!-- Universal Password Visibility Toggle Utility with Global Event Delegation -->
+    <!-- Password Visibility Toggle Utility with Debouncing & Deduplication -->
     <script>
-        window.togglePassword = function(inputId, iconElement) {
-            var input = typeof inputId === "string" ? document.getElementById(inputId) : inputId;
+        window.togglePassword = function(inputId, iconElement, event) {
+            if (event) {
+                if (event._toggleHandled) return;
+                event._toggleHandled = true;
+            }
+
+            // Deduplicate executions within 120ms to prevent double toggling
+            var now = Date.now();
+            if (window._lastToggleTime && (now - window._lastToggleTime < 120)) {
+                return;
+            }
+            window._lastToggleTime = now;
+
+            var input = (typeof inputId === "string" && inputId) ? document.getElementById(inputId) : inputId;
             if (!input && iconElement) {
                 var container = iconElement.closest(".password-box") || iconElement.parentElement;
-                if (container) input = container.querySelector("input");
+                if (container) input = container.querySelector("input[type='password'], input[type='text']");
             }
             if (!input) return;
 
-            var willBeText = (input.type === "password");
-            input.type = willBeText ? "text" : "password";
+            var isPassword = (input.type === "password");
+            input.type = isPassword ? "text" : "password";
 
             var container = input.closest(".password-box") || input.parentElement;
             var targetIcons = [];
@@ -43,7 +55,7 @@
             }
 
             targetIcons.forEach(function(icon) {
-                if (willBeText) {
+                if (isPassword) {
                     icon.classList.remove("fa-eye");
                     icon.classList.add("fa-eye-slash");
                 } else {
@@ -53,15 +65,15 @@
             });
         };
 
-        // Universal document event delegation to catch clicks on any .toggle-password icon
+        // Delegated listener with deduplication check
         document.addEventListener("click", function(e) {
             var icon = e.target.closest(".toggle-password, [data-toggle-password]");
             if (icon) {
                 var container = icon.closest(".password-box") || icon.parentElement;
                 if (container) {
-                    var input = container.querySelector("input");
+                    var input = container.querySelector("input[type='password'], input[type='text']");
                     if (input) {
-                        window.togglePassword(input.id || input, icon);
+                        window.togglePassword(input.id || input, icon, e);
                     }
                 }
             }

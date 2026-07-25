@@ -483,9 +483,6 @@ function initDashboardScanners() {
     var btnQr = document.getElementById("btnQrScan");
     if (btnQr) btnQr.addEventListener("click", function() { window.runQrScan(); });
 
-    var fileInput = document.getElementById("qrFileInput");
-    if (fileInput) fileInput.addEventListener("change", function() { window.runQrScan(); });
-
     var pwdInput = document.getElementById("pwdScanInput");
     if (pwdInput) pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runPasswordScan(); });
 
