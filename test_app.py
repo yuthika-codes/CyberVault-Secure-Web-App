@@ -156,6 +156,26 @@ class CyberVaultRequirement5TestCase(unittest.TestCase):
         self.assertEqual(strong_data['status'], 'STRONG')
         self.assertGreaterEqual(strong_data['score'], 90)
 
+    def test_malicious_code_and_input_security_scanner(self):
+        """Test Malicious Code Scanner API detecting SQLi, XSS, and Command Injection."""
+        # Test Malicious SQLi and Command Injection Payload
+        malicious_res = self.app.post('/api/input-scan', json={
+            'input_text': "SELECT * FROM users WHERE '1'='1'; ping 127.0.0.1; cat /etc/passwd"
+        })
+        self.assertEqual(malicious_res.status_code, 200)
+        mal_data = json.loads(malicious_res.data)
+        self.assertEqual(mal_data['status'], 'MALICIOUS_CODE_ALERT')
+        self.assertLess(mal_data['threat_score'], 60)
+
+        # Test Safe Input Text
+        safe_res = self.app.post('/api/input-scan', json={
+            'input_text': "Hello, welcome to my secure application user portal."
+        })
+        self.assertEqual(safe_res.status_code, 200)
+        safe_data = json.loads(safe_res.data)
+        self.assertEqual(safe_data['status'], 'SAFE')
+        self.assertEqual(safe_data['threat_score'], 100)
+
     def test_oauth_google_sso_flow(self):
         """Test simulated Google OAuth 2.0 SSO sign-in."""
         response = self.app.get('/auth/oauth/google', follow_redirects=True)

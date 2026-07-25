@@ -617,6 +617,104 @@ def api_password_scan():
 
 
 # ==========================
+# Malicious Code & Input Security Scanner API
+# ==========================
+
+@app.route("/api/input-scan", methods=["POST"])
+def api_input_scan():
+    """Malicious Code & Input Security Scanner Engine."""
+    data = request.get_json(silent=True, force=True)
+    if not data or not isinstance(data, dict):
+        data = request.form
+
+    raw_input = (data.get("input_text") or data.get("text") or "").strip()
+    if not raw_input:
+        return jsonify({
+            "status": "ERROR",
+            "threat_score": 0,
+            "threat_level": "NONE",
+            "threats_found": [{"type": "Empty Input", "severity": "INFO", "description": "Please enter text or code payload to analyze."}],
+            "recommendation": "Enter a string or code snippet to scan for SQLi, XSS, and Command Injection."
+        }), 400
+
+    threats = []
+    safety_score = 100
+
+    # 1. SQL Injection (SQLi) Patterns
+    sqli_patterns = [
+        (r"(\'|\")\s*(OR|AND)\s*(\'|\")?\s*(\d+|\w+)\s*=\s*(\'|\")?\s*(\d+|\w+)", "SQLi Tautology Pattern (' OR '1'='1)", "CRITICAL", "Attempts to bypass authentication queries by forcing a TRUE evaluation."),
+        (r"\b(UNION\s+SELECT|UNION\s+ALL\s+SELECT)\b", "SQLi UNION Attack Keyword", "CRITICAL", "Attempts to append unauthorized query results to existing database responses."),
+        (r"\b(DROP\s+TABLE|DROP\s+DATABASE|TRUNCATE\s+TABLE)\b", "SQLi Database Destruction Query", "CRITICAL", "Attempts to destroy or truncate database structures."),
+        (r"(--|\/\*|\*\/|;\s*SELECT|;\s*INSERT|;\s*UPDATE)", "SQL Inline Comment / Query Separator", "HIGH", "Uses SQL comment delimiters to truncate query execution.")
+    ]
+
+    for pattern, rule_name, severity, desc in sqli_patterns:
+        if re.search(pattern, raw_input, re.IGNORECASE):
+            safety_score -= 30
+            threats.append({"type": "SQL Injection (SQLi)", "rule": rule_name, "severity": severity, "description": desc})
+
+    # 2. Cross-Site Scripting (XSS) Patterns
+    xss_patterns = [
+        (r"<\s*script[^>]*>", "XSS <script> Tag Injection", "CRITICAL", "Injects executable JavaScript tag into client-side browser DOM."),
+        (r"javascript\s*:", "XSS JavaScript URI Scheme", "HIGH", "Executes inline script via URL scheme attribute."),
+        (r"\bon\w+\s*=\s*(\'|\"|`)[^'\"]*(\'|\"|`)", "XSS Event Handler Attribute (onerror/onload)", "HIGH", "Triggers script execution on DOM events."),
+        (r"<\s*iframe[^>]*>", "XSS Malicious iFrame Injection", "HIGH", "Embeds untrusted external frame content into host document.")
+    ]
+
+    for pattern, rule_name, severity, desc in xss_patterns:
+        if re.search(pattern, raw_input, re.IGNORECASE):
+            safety_score -= 25
+            threats.append({"type": "Cross-Site Scripting (XSS)", "rule": rule_name, "severity": severity, "description": desc})
+
+    # 3. OS Command Injection Patterns
+    cmd_patterns = [
+        (r"(;|\&\&|\|\|)\s*(rm\s+-rf|cat\s+/etc/passwd|shutdown|format|wget|curl|nc\s+)", "OS Command Chaining Payload", "CRITICAL", "Attempts to execute arbitrary system shell commands on the server OS."),
+        (r"\b(powershell\s+-enc|cmd\.exe\s+/c|/bin/sh|/bin/bash)\b", "Shell Interpreter Execution Call", "CRITICAL", "Spawns interactive shell environment executable.")
+    ]
+
+    for pattern, rule_name, severity, desc in cmd_patterns:
+        if re.search(pattern, raw_input, re.IGNORECASE):
+            safety_score -= 35
+            threats.append({"type": "OS Command Injection", "rule": rule_name, "severity": severity, "description": desc})
+
+    # 4. Path Traversal (LFI / RFI) Patterns
+    path_patterns = [
+        (r"(\.\./\.\./|\.\.\\\.\.\\|/etc/passwd|c:\\windows\\system32)", "Path Traversal (LFI) File Path", "HIGH", "Attempts to traverse directory tree to read restricted system files.")
+    ]
+
+    for pattern, rule_name, severity, desc in path_patterns:
+        if re.search(pattern, raw_input, re.IGNORECASE):
+            safety_score -= 25
+            threats.append({"type": "Directory Path Traversal", "rule": rule_name, "severity": severity, "description": desc})
+
+    safety_score = max(0, min(100, safety_score))
+
+    if safety_score >= 85:
+        status = "SAFE"
+        threat_level = "CLEAN"
+        recommendation = "Input text is clean and safe. No malicious code or injection patterns detected."
+    elif safety_score >= 50:
+        status = "SUSPICIOUS_CODE_DETECTED"
+        threat_level = "MEDIUM"
+        recommendation = "Suspicious code patterns detected. Sanitize input with HTML entity escaping and Jinja2 autoescaping."
+    else:
+        status = "MALICIOUS_CODE_ALERT"
+        threat_level = "CRITICAL"
+        recommendation = "DANGER! Malicious injection payload identified. Block payload execution immediately!"
+
+    log_security_event(f"Input Code Scan Executed (Status: {status}, Score: {safety_score}/100)")
+
+    return jsonify({
+        "status": status,
+        "threat_score": safety_score,
+        "threat_level": threat_level,
+        "input_preview": raw_input[:100],
+        "threats_found": threats,
+        "recommendation": recommendation
+    })
+
+
+# ==========================
 # Phishing & Safe URL Scanner API
 # ==========================
 
