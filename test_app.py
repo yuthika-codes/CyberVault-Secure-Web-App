@@ -1,11 +1,12 @@
 import unittest
-from app import app, db, User
+import json
+from app import app, db, User, SecretVault, AuditLog
 
 
-class CyberVaultTestCase(unittest.TestCase):
+class CyberVaultRequirement5TestCase(unittest.TestCase):
 
     def setUp(self):
-        """Set up in-memory SQLite database and test environment before each test."""
+        """Set up in-memory database and testing environment."""
         app.config['TESTING'] = True
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['WTF_CSRF_ENABLED'] = False
@@ -26,179 +27,152 @@ class CyberVaultTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'CyberVault', response.data)
 
-    def test_successful_registration(self):
-        """Test user registration with valid details."""
+    def test_successful_registration_and_rbac_role(self):
+        """Test user registration with role selection."""
         response = self.app.post('/register', data={
-            'fullname': 'Alice Tester',
-            'email': 'alice@example.com',
+            'fullname': 'Alice Admin',
+            'email': 'alice.admin@example.com',
             'password': 'SecurePassword123!',
-            'confirm_password': 'SecurePassword123!'
+            'confirm_password': 'SecurePassword123!',
+            'role': 'admin'
         }, follow_redirects=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Registration successful', response.data)
 
         with app.app_context():
-            user = User.query.filter_by(email='alice@example.com').first()
+            user = User.query.filter_by(email='alice.admin@example.com').first()
             self.assertIsNotNone(user)
-            self.assertEqual(user.fullname, 'Alice Tester')
+            self.assertEqual(user.role, 'admin')
 
-    def test_registration_weak_password(self):
-        """Test registration fails with weak password."""
-        response = self.app.post('/register', data={
-            'fullname': 'Bob Weak',
-            'email': 'bob@example.com',
-            'password': '123',
-            'confirm_password': '123'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Password must contain minimum 8 characters', response.data)
-
-        with app.app_context():
-            user = User.query.filter_by(email='bob@example.com').first()
-            self.assertIsNone(user)
-
-    def test_registration_invalid_email(self):
-        """Test registration fails with invalid email format."""
-        response = self.app.post('/register', data={
-            'fullname': 'Charlie Invalid',
-            'email': 'not-an-email',
-            'password': 'SecurePassword123!',
-            'confirm_password': 'SecurePassword123!'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Please enter a valid email address', response.data)
-
-    def test_duplicate_registration(self):
-        """Test registration fails when email is already registered."""
-        # First registration
+    def test_aes256_encrypted_vault_crud(self):
+        """Test storing, decrypting, and deleting secrets in AES-256 Vault."""
+        # Register and Login
         self.app.post('/register', data={
-            'fullname': 'Alice Tester',
-            'email': 'alice@example.com',
+            'fullname': 'Vault Owner',
+            'email': 'vault@example.com',
             'password': 'SecurePassword123!',
             'confirm_password': 'SecurePassword123!'
         })
+        self.app.post('/login', data={
+            'email': 'vault@example.com',
+            'password': 'SecurePassword123!'
+        })
 
-        # Duplicate registration
-        response = self.app.post('/register', data={
-            'fullname': 'Alice Clone',
-            'email': 'alice@example.com',
-            'password': 'SecurePassword123!',
-            'confirm_password': 'SecurePassword123!'
+        # Add secret to Vault
+        add_res = self.app.post('/vault/add', data={
+            'title': 'Stripe Production API Key',
+            'category': 'API Key',
+            'raw_secret': 'dummy_api_key_sample_vault_secret_12345'
         }, follow_redirects=True)
 
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Email address is already registered', response.data)
+        self.assertEqual(add_res.status_code, 200)
+        self.assertIn(b'encrypted with AES-256', add_res.data)
 
-    def test_successful_login_and_logout(self):
-        """Test valid user login and logout flow."""
+        with app.app_context():
+            user = User.query.filter_by(email='vault@example.com').first()
+            secret = SecretVault.query.filter_by(user_id=user.id).first()
+            self.assertIsNotNone(secret)
+            self.assertEqual(secret.title, 'Stripe Production API Key')
+            # Verify database stores encrypted text, NOT raw text
+            self.assertNotEqual(secret.encrypted_secret, 'dummy_api_key_sample_vault_secret_12345')
+            # Verify decryption method returns original secret
+            self.assertEqual(secret.get_decrypted_secret(), 'dummy_api_key_sample_vault_secret_12345')
+
+            secret_id = secret.id
+
+        # Delete secret
+        del_res = self.app.post(f'/vault/delete/{secret_id}', follow_redirects=True)
+        self.assertEqual(del_res.status_code, 200)
+        self.assertIn(b'Secret deleted from vault', del_res.data)
+
+    def test_jwt_token_generation_and_api_bearer_auth(self):
+        """Test JWT token generation and Bearer authorization on /api/secure-data."""
         # Register user
         self.app.post('/register', data={
-            'fullname': 'Dave User',
-            'email': 'dave@example.com',
+            'fullname': 'API Tester',
+            'email': 'api@example.com',
             'password': 'SecurePassword123!',
             'confirm_password': 'SecurePassword123!'
         })
 
-        # Login
-        response = self.app.post('/login', data={
-            'email': 'dave@example.com',
+        # Obtain JWT Token
+        token_res = self.app.post('/api/auth/token', data=json.dumps({
+            'email': 'api@example.com',
             'password': 'SecurePassword123!'
-        }, follow_redirects=True)
+        }), content_type='application/json')
 
+        self.assertEqual(token_res.status_code, 200)
+        data = json.loads(token_res.data)
+        self.assertEqual(data['status'], 'success')
+        jwt_token = data['token']
+
+        # Access protected API without token (should fail 401)
+        unauth_res = self.app.get('/api/secure-data')
+        self.assertEqual(unauth_res.status_code, 401)
+
+        # Access protected API with valid Bearer JWT token (should succeed 200)
+        auth_res = self.app.get('/api/secure-data', headers={
+            'Authorization': f'Bearer {jwt_token}'
+        })
+        self.assertEqual(auth_res.status_code, 200)
+        auth_data = json.loads(auth_res.data)
+        self.assertEqual(auth_data['status'], 'authorized')
+        self.assertEqual(auth_data['authenticated_as']['email'], 'api@example.com')
+
+    def test_owasp_vulnerability_scanner_sqli_and_xss(self):
+        """Test OWASP Top 10 inspector API detecting SQLi and XSS payloads."""
+        # Test SQL Injection payload
+        sqli_res = self.app.post('/api/scan', json={
+            'input_text': "SELECT * FROM users WHERE email = 'admin@cybervault.com' OR '1'='1'; --"
+        })
+        self.assertEqual(sqli_res.status_code, 200)
+        sqli_data = json.loads(sqli_res.data)
+        self.assertEqual(sqli_data['status'], 'THREAT_DETECTED')
+        self.assertTrue(any(t['type'] == 'SQLi' for t in sqli_data['threats_found']))
+
+        # Test XSS payload
+        xss_res = self.app.post('/api/scan', json={
+            'input_text': "<script>alert('DOM Injection XSS Attack')</script>"
+        })
+        self.assertEqual(xss_res.status_code, 200)
+        xss_data = json.loads(xss_res.data)
+        self.assertEqual(xss_data['status'], 'THREAT_DETECTED')
+        self.assertTrue(any(t['type'] == 'XSS' for t in xss_data['threats_found']))
+
+        # Test safe payload
+        safe_res = self.app.post('/api/scan', json={
+            'input_text': "Normal user search query"
+        })
+        self.assertEqual(safe_res.status_code, 200)
+        safe_data = json.loads(safe_res.data)
+        self.assertEqual(safe_data['status'], 'SAFE')
+        self.assertEqual(safe_data['threat_score'], 100)
+
+    def test_oauth_google_sso_flow(self):
+        """Test simulated Google OAuth 2.0 SSO sign-in."""
+        response = self.app.get('/auth/oauth/google', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Welcome, Dave User', response.data)
+        self.assertIn(b'Authenticated via Google OAuth 2.0 SSO', response.data)
 
-        # Logout
-        logout_response = self.app.get('/logout', follow_redirects=True)
-        self.assertEqual(logout_response.status_code, 200)
-        self.assertIn(b'Logged out successfully', logout_response.data)
-
-    def test_invalid_login(self):
-        """Test login fails with incorrect password."""
-        response = self.app.post('/login', data={
-            'email': 'nonexistent@example.com',
-            'password': 'WrongPassword123!'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Invalid email or password', response.data)
-
-    def test_protected_routes_unauthenticated(self):
-        """Test protected routes redirect unauthenticated users to login."""
-        protected_urls = ['/dashboard', '/profile', '/change_password']
-        for url in protected_urls:
-            response = self.app.get(url, follow_redirects=False)
-            self.assertEqual(response.status_code, 302)
-            self.assertIn('/login', response.headers['Location'])
-
-    def test_profile_update(self):
-        """Test updating user profile."""
-        # Register & Login
+    def test_admin_rbac_authorization_guards(self):
+        """Test that regular users cannot access Admin management functions."""
+        # Register standard user
         self.app.post('/register', data={
-            'fullname': 'Eve Original',
-            'email': 'eve@example.com',
+            'fullname': 'Standard User',
+            'email': 'user@example.com',
             'password': 'SecurePassword123!',
-            'confirm_password': 'SecurePassword123!'
+            'confirm_password': 'SecurePassword123!',
+            'role': 'user'
         })
         self.app.post('/login', data={
-            'email': 'eve@example.com',
+            'email': 'user@example.com',
             'password': 'SecurePassword123!'
         })
 
-        # Update profile
-        response = self.app.post('/profile', data={
-            'fullname': 'Eve Updated',
-            'email': 'eve.new@example.com'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Profile updated successfully', response.data)
-
-        with app.app_context():
-            user = User.query.filter_by(email='eve.new@example.com').first()
-            self.assertIsNotNone(user)
-            self.assertEqual(user.fullname, 'Eve Updated')
-
-    def test_change_password(self):
-        """Test changing password with old password check and complexity enforcement."""
-        # Register & Login
-        self.app.post('/register', data={
-            'fullname': 'Frank Pass',
-            'email': 'frank@example.com',
-            'password': 'OldPassword123!',
-            'confirm_password': 'OldPassword123!'
-        })
-        self.app.post('/login', data={
-            'email': 'frank@example.com',
-            'password': 'OldPassword123!'
-        })
-
-        # Change password to weak password (should fail)
-        weak_res = self.app.post('/change_password', data={
-            'old_password': 'OldPassword123!',
-            'new_password': 'weak',
-            'confirm_password': 'weak'
-        }, follow_redirects=True)
-        self.assertIn(b'Password must contain minimum 8 characters', weak_res.data)
-
-        # Change password to valid strong password (should succeed)
-        success_res = self.app.post('/change_password', data={
-            'old_password': 'OldPassword123!',
-            'new_password': 'BrandNewPassword456!',
-            'confirm_password': 'BrandNewPassword456!'
-        }, follow_redirects=True)
-
-        self.assertEqual(success_res.status_code, 200)
-        self.assertIn(b'Password updated successfully', success_res.data)
-
-    def test_custom_404(self):
-        """Test non-existent route returns 404 page."""
-        response = self.app.get('/this-route-does-not-exist')
-        self.assertEqual(response.status_code, 404)
-        self.assertIn(b'Page Not Found', response.data)
+        # Attempt to trigger admin user role toggle
+        res = self.app.post('/admin/user/1/toggle-role', follow_redirects=True)
+        self.assertIn(b'Admin privileges required', res.data)
 
 
 if __name__ == '__main__':

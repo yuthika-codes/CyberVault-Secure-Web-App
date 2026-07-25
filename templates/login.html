@@ -22,7 +22,7 @@
                 >
             </div>
 
-            <div class="password-box mb-4">
+            <div class="password-box mb-3">
                 <input
                     type="password"
                     id="login_password"
@@ -37,10 +37,29 @@
                    title="Toggle Password Visibility"></i>
             </div>
 
-            <button type="submit" class="btn-login">
+            <button type="submit" class="btn-login mb-3">
                 <i class="fa-solid fa-lock me-2"></i> Login
             </button>
         </form>
+
+        <!-- OAuth 2.0 SSO Integration Demo -->
+        <div class="my-3">
+            <div class="d-flex align-items-center mb-3">
+                <hr class="flex-grow-1 border-secondary">
+                <span class="px-2 text-muted small">OR SSO</span>
+                <hr class="flex-grow-1 border-secondary">
+            </div>
+
+            <a href="{{ url_for('oauth_google') }}" class="btn-google-sso w-100">
+                <i class="fa-brands fa-google text-danger me-2"></i> Continue with Google OAuth 2.0
+            </a>
+        </div>
+
+        <!-- Default Admin Credentials Demo Badge -->
+        <div class="alert alert-info py-2 px-3 small mt-3 text-start mb-0">
+            <i class="fa-solid fa-crown me-1 text-warning"></i> <strong>Admin Test Credentials:</strong><br>
+            Email: <code>admin@cybervault.com</code> | Pass: <code>Admin@123456</code>
+        </div>
 
         <div class="auth-footer mt-4">
             <p class="text-muted">Don't have an account? <a href="{{ url_for('register') }}" class="auth-link">Register here</a></p>

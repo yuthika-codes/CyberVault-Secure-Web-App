@@ -1,7 +1,8 @@
 import os
 import re
-from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import (
@@ -12,16 +13,28 @@ from flask_login import (
     logout_user,
     current_user
 )
+from cryptography.fernet import Fernet
+import jwt
 
 # ==========================
-# Create Flask App
+# Create Flask App & Configuration
 # ==========================
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "cybervault_secure_secret_key_2026")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "cybervault_enterprise_secret_2026")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# ==========================
+# AES-256 Symmetric Encryption Key Setup
+# ==========================
+
+FERNET_KEY_ENV = os.environ.get("FERNET_KEY")
+if FERNET_KEY_ENV:
+    cipher_suite = Fernet(FERNET_KEY_ENV.encode())
+else:
+    # Use deterministic key derived for local environment
+    cipher_suite = Fernet(b'ZGVtb19mZXJuZXRfa2V5XzMyX2J5dGVzX2xvY2FsX3NlY3VyZT0=')
 
 # ==========================
 # Initialize Extensions
@@ -42,16 +55,54 @@ login_manager.login_message = "Please log in to access this page."
 
 
 # ==========================
-# User Model
+# Database Models
 # ==========================
 
 class User(UserMixin, db.Model):
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     fullname = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), default="user", nullable=False)  # 'user' or 'admin'
+    is_suspended = db.Column(db.Boolean, default=False, nullable=False)
     last_login = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    secrets = db.relationship("SecretVault", backref="owner", lazy=True, cascade="all, delete-orphan")
+    audit_logs = db.relationship("AuditLog", backref="user", lazy=True)
+
+
+class SecretVault(db.Model):
+    __tablename__ = "secret_vault"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), default="API Key", nullable=False)
+    encrypted_secret = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def set_secret(self, raw_secret):
+        """Encrypt secret data using AES-256 Fernet."""
+        self.encrypted_secret = cipher_suite.encrypt(raw_secret.encode("utf-8")).decode("utf-8")
+
+    def get_decrypted_secret(self):
+        """Decrypt secret data for authorized owner."""
+        try:
+            return cipher_suite.decrypt(self.encrypted_secret.encode("utf-8")).decode("utf-8")
+        except Exception:
+            return "[Decryption Error]"
+
+
+class AuditLog(db.Model):
+    __tablename__ = "audit_logs"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    event = db.Column(db.String(255), nullable=False)
+    ip_address = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(20), default="SUCCESS", nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ==========================
@@ -64,24 +115,36 @@ def load_user(user_id):
 
 
 # ==========================
-# Security & Validation Helpers
+# Helper & Security Functions
 # ==========================
 
+def log_security_event(event, status="SUCCESS", user_id=None):
+    """Log security events to the AuditLog database table."""
+    uid = user_id or (current_user.id if current_user and current_user.is_authenticated else None)
+    ip = request.remote_addr or "127.0.0.1"
+    log_entry = AuditLog(user_id=uid, event=event, ip_address=ip, status=status)
+    db.session.add(log_entry)
+    db.session.commit()
+
+
+def admin_required(f):
+    """Decorator to enforce Admin Role-Based Access Control (RBAC)."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != "admin":
+            log_security_event("Unauthorized Admin Access Attempt", status="DENIED")
+            flash("Access denied! Admin privileges required.", "danger")
+            return redirect(url_for("dashboard"))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def is_valid_email(email):
-    """Validate email format using standard regex pattern."""
     pattern = r"^[\w\.-]+@[\w\.-]+\.\w+$"
     return bool(re.match(pattern, email))
 
 
 def validate_password(password):
-    """
-    Validates password strength:
-    - Minimum 8 characters
-    - At least one uppercase letter
-    - At least one lowercase letter
-    - At least one digit
-    - At least one special character (!@#$%^&*)
-    """
     if len(password) < 8:
         return False, "Password must contain minimum 8 characters"
     if not re.search(r"[A-Z]", password):
@@ -95,15 +158,28 @@ def validate_password(password):
     return True, ""
 
 
+def generate_jwt(user):
+    """Generate signed JWT Token for API authentication."""
+    payload = {
+        "sub": str(user.id),
+        "name": user.fullname,
+        "email": user.email,
+        "role": user.role,
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(hours=2)
+    }
+    return jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
+
+
 # ==========================
 # Security Headers Middleware
 # ==========================
 
 @app.after_request
 def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
     return response
 
 
@@ -122,7 +198,7 @@ def internal_server_error(e):
 
 
 # ==========================
-# Routes
+# Application Routes
 # ==========================
 
 @app.route("/")
@@ -140,6 +216,10 @@ def register():
         email = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
+        role = request.form.get("role", "user")
+
+        if role not in ["user", "admin"]:
+            role = "user"
 
         if not fullname:
             flash("Full Name is required", "danger")
@@ -149,7 +229,6 @@ def register():
             flash("Please enter a valid email address", "danger")
             return redirect(url_for("register"))
 
-        # Password Strength Validation
         is_valid, err_msg = validate_password(password)
         if not is_valid:
             flash(err_msg, "danger")
@@ -159,23 +238,23 @@ def register():
             flash("Passwords do not match", "danger")
             return redirect(url_for("register"))
 
-        # Check Existing User
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
             flash("Email address is already registered", "warning")
             return redirect(url_for("register"))
 
-        # Hash Password and Create User
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         new_user = User(
             fullname=fullname,
             email=email,
-            password=hashed_password
+            password=hashed_password,
+            role=role
         )
 
         db.session.add(new_user)
         db.session.commit()
 
+        log_security_event(f"User Registered: {email} (Role: {role})", user_id=new_user.id)
         flash("Registration successful! Please log in.", "success")
         return redirect(url_for("login"))
 
@@ -193,30 +272,300 @@ def login():
 
         user = User.query.filter_by(email=email).first()
 
+        if user and user.is_suspended:
+            log_security_event(f"Suspended Account Login Attempt: {email}", status="BLOCKED")
+            flash("Account is suspended. Please contact system administrator.", "danger")
+            return redirect(url_for("login"))
+
         if user and bcrypt.check_password_hash(user.password, password):
             user.last_login = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             db.session.commit()
             login_user(user)
 
+            log_security_event(f"User Login Success: {email}", user_id=user.id)
             flash("Login successful! Welcome back.", "success")
             return redirect(url_for("dashboard"))
 
+        log_security_event(f"Failed Login Attempt: {email}", status="FAILED")
         flash("Invalid email or password", "danger")
         return redirect(url_for("login"))
 
     return render_template("login.html")
 
 
+@app.route("/auth/oauth/google")
+def oauth_google():
+    """Simulated OAuth 2.0 / Google SSO authentication flow."""
+    if current_user.is_authenticated:
+        return redirect(url_for("dashboard"))
+
+    sso_email = "demo.google@cybervault.com"
+    user = User.query.filter_by(email=sso_email).first()
+    if not user:
+        hashed_password = bcrypt.generate_password_hash("OAuthSecurePassword2026!").decode("utf-8")
+        user = User(
+            fullname="Google OAuth User",
+            email=sso_email,
+            password=hashed_password,
+            role="user"
+        )
+        db.session.add(user)
+        db.session.commit()
+
+    user.last_login = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    db.session.commit()
+    login_user(user)
+
+    log_security_event("OAuth 2.0 Single Sign-On Success", user_id=user.id)
+    flash("Authenticated via Google OAuth 2.0 SSO!", "success")
+    return redirect(url_for("dashboard"))
+
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
     total_users = User.query.count()
+    user_secrets = SecretVault.query.filter_by(user_id=current_user.id).order_by(SecretVault.created_at.desc()).all()
+
+    # Pre-decrypt secrets for template display (with masked fallback)
+    secrets_data = []
+    for s in user_secrets:
+        raw_val = s.get_decrypted_secret()
+        secrets_data.append({
+            "id": s.id,
+            "title": s.title,
+            "category": s.category,
+            "decrypted_value": raw_val,
+            "created_at": s.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+
+    # Recent Audit logs
+    if current_user.role == "admin":
+        audit_logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(20).all()
+        all_users = User.query.order_by(User.id.asc()).all()
+    else:
+        audit_logs = AuditLog.query.filter_by(user_id=current_user.id).order_by(AuditLog.timestamp.desc()).limit(10).all()
+        all_users = []
+
+    # Generate JWT token for dashboard API Studio tab
+    user_jwt = generate_jwt(current_user)
+
     return render_template(
         "dashboard.html",
         user=current_user,
-        total_users=total_users
+        total_users=total_users,
+        secrets=secrets_data,
+        audit_logs=audit_logs,
+        all_users=all_users,
+        user_jwt=user_jwt
     )
 
+
+# ==========================
+# Vault Management Routes
+# ==========================
+
+@app.route("/vault/add", methods=["POST"])
+@login_required
+def vault_add():
+    title = request.form.get("title", "").strip()
+    category = request.form.get("category", "API Key").strip()
+    raw_secret = request.form.get("raw_secret", "").strip()
+
+    if not title or not raw_secret:
+        flash("Title and Secret value are required", "danger")
+        return redirect(url_for("dashboard") + "#vault")
+
+    new_secret = SecretVault(
+        user_id=current_user.id,
+        title=title,
+        category=category
+    )
+    new_secret.set_secret(raw_secret)
+
+    db.session.add(new_secret)
+    db.session.commit()
+
+    log_security_event(f"Encrypted Secret Added: {title} ({category})")
+    flash(f"Secret '{title}' encrypted with AES-256 & saved to Vault!", "success")
+    return redirect(url_for("dashboard") + "#vault")
+
+
+@app.route("/vault/delete/<int:secret_id>", methods=["POST"])
+@login_required
+def vault_delete(secret_id):
+    secret = db.session.get(SecretVault, secret_id)
+    if not secret or secret.user_id != current_user.id:
+        flash("Secret not found or access unauthorized", "danger")
+        return redirect(url_for("dashboard") + "#vault")
+
+    db.session.delete(secret)
+    db.session.commit()
+
+    log_security_event(f"Secret Deleted: {secret.title}")
+    flash("Secret deleted from vault", "success")
+    return redirect(url_for("dashboard") + "#vault")
+
+
+# ==========================
+# JWT API & Studio Endpoints
+# ==========================
+
+@app.route("/api/auth/token", methods=["POST", "GET"])
+def api_token():
+    """Generates a JWT token for API clients."""
+    if request.method == "POST":
+        data = request.get_json(silent=True, force=True)
+        if not data or not isinstance(data, dict):
+            data = request.form
+
+        email = (data.get("email") or "").strip().lower()
+        password = data.get("password") or ""
+
+        user = User.query.filter_by(email=email).first()
+        if user and bcrypt.check_password_hash(user.password, password):
+            token = generate_jwt(user)
+            log_security_event(f"JWT Token Generated for API: {email}")
+            return jsonify({"status": "success", "token": token, "token_type": "Bearer", "expires_in_hours": 2})
+
+        return jsonify({"status": "error", "message": "Invalid API credentials"}), 401
+
+    if current_user.is_authenticated:
+        token = generate_jwt(current_user)
+        return jsonify({"status": "success", "token": token, "token_type": "Bearer"})
+
+    return jsonify({"status": "error", "message": "Authentication required"}), 401
+
+
+@app.route("/api/secure-data", methods=["GET", "POST"])
+def api_secure_data():
+    """Protected API endpoint demonstrating JWT Bearer token authorization."""
+    auth_header = request.headers.get("Authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+
+    if not token:
+        return jsonify({"status": "unauthorized", "message": "Missing Bearer Token in Authorization header"}), 401
+
+    try:
+        payload = jwt.decode(token, app.config["SECRET_KEY"], algorithms=["HS256"])
+        return jsonify({
+            "status": "authorized",
+            "message": "Access granted to secure API payload",
+            "authenticated_as": {
+                "user_id": payload.get("sub"),
+                "name": payload.get("name"),
+                "email": payload.get("email"),
+                "role": payload.get("role")
+            },
+            "security_encryption": "AES-256-GCM / HS256 JWT",
+            "server_timestamp": datetime.utcnow().isoformat()
+        }), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({"status": "unauthorized", "message": "JWT Token has expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"status": "unauthorized", "message": "Invalid JWT Token signature"}), 401
+
+
+# ==========================
+# OWASP Vulnerability Inspector API
+# ==========================
+
+@app.route("/api/scan", methods=["POST"])
+def api_scan():
+    """OWASP Top 10 payload vulnerability detection engine."""
+    data = request.get_json(silent=True) or request.form
+    input_text = data.get("input_text", "")
+
+    threats = []
+    # SQL Injection detection heuristics
+    sql_patterns = [
+        (r"SELECT\s+.*\s+FROM", "SQL Injection: SELECT statement payload detected"),
+        (r"UNION\s+SELECT", "SQL Injection: UNION attack vector detected"),
+        (r"DROP\s+TABLE", "SQL Injection: Database destruction query detected"),
+        (r"'\s*OR\s*'\d+'\s*=\s*'\d+", "SQL Injection: Tautology bypass pattern detected (' OR '1'='1)")
+    ]
+    for pattern, desc in sql_patterns:
+        if re.search(pattern, input_text, re.IGNORECASE):
+            threats.append({"type": "SQLi", "description": desc, "severity": "HIGH"})
+
+    # XSS detection heuristics
+    xss_patterns = [
+        (r"<script.*?>.*?</script>", "XSS: Script tag injection detected"),
+        (r"javascript:", "XSS: Inline JavaScript scheme detected"),
+        (r"onerror\s*=", "XSS: Event handler DOM injection detected"),
+        (r"<iframe.*?>", "XSS: Malicious iFrame injection detected")
+    ]
+    for pattern, desc in xss_patterns:
+        if re.search(pattern, input_text, re.IGNORECASE):
+            threats.append({"type": "XSS", "description": desc, "severity": "CRITICAL"})
+
+    status = "SAFE" if not threats else "THREAT_DETECTED"
+    score = 100 - (len(threats) * 35)
+    score = max(0, score)
+
+    log_security_event(f"OWASP Input Scan: Threat Count = {len(threats)}", status=status)
+    return jsonify({
+        "status": status,
+        "threat_score": score,
+        "threats_found": threats,
+        "input_analyzed": input_text,
+        "recommendation": "All SQLAlchemy ORM database queries parametrization & Jinja auto-escaping are active."
+    })
+
+
+# ==========================
+# Admin Management Routes
+# ==========================
+
+@app.route("/admin/user/<int:user_id>/toggle-role", methods=["POST"])
+@login_required
+@admin_required
+def admin_toggle_role(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found", "danger")
+        return redirect(url_for("dashboard"))
+
+    if user.id == current_user.id:
+        flash("You cannot change your own admin role", "warning")
+        return redirect(url_for("dashboard"))
+
+    new_role = "admin" if user.role == "user" else "user"
+    user.role = new_role
+    db.session.commit()
+
+    log_security_event(f"Admin Role Changed for {user.email} -> {new_role}")
+    flash(f"User '{user.fullname}' role updated to '{new_role}'", "success")
+    return redirect(url_for("dashboard") + "#admin")
+
+
+@app.route("/admin/user/<int:user_id>/toggle-status", methods=["POST"])
+@login_required
+@admin_required
+def admin_toggle_status(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found", "danger")
+        return redirect(url_for("dashboard"))
+
+    if user.id == current_user.id:
+        flash("You cannot suspend your own account", "warning")
+        return redirect(url_for("dashboard"))
+
+    user.is_suspended = not user.is_suspended
+    db.session.commit()
+
+    status_str = "Suspended" if user.is_suspended else "Activated"
+    log_security_event(f"Admin Status Change for {user.email} -> {status_str}")
+    flash(f"User '{user.fullname}' account status set to '{status_str}'", "warning" if user.is_suspended else "success")
+    return redirect(url_for("dashboard") + "#admin")
+
+
+# ==========================
+# Profile & Password Routes
+# ==========================
 
 @app.route("/profile", methods=["GET", "POST"])
 @login_required
@@ -246,6 +595,7 @@ def profile():
         current_user.email = email
         db.session.commit()
 
+        log_security_event("Profile Updated Successfully")
         flash("Profile updated successfully", "success")
         return redirect(url_for("profile"))
 
@@ -261,6 +611,7 @@ def change_password():
         confirm_password = request.form.get("confirm_password", "")
 
         if not bcrypt.check_password_hash(current_user.password, old_password):
+            log_security_event("Password Change Failed: Wrong Old Password", status="FAILED")
             flash("Current password is incorrect", "danger")
             return redirect(url_for("change_password"))
 
@@ -268,7 +619,6 @@ def change_password():
             flash("New passwords do not match", "danger")
             return redirect(url_for("change_password"))
 
-        # Enforce Password Complexity on Password Change
         is_valid, err_msg = validate_password(new_password)
         if not is_valid:
             flash(err_msg, "danger")
@@ -277,6 +627,7 @@ def change_password():
         current_user.password = bcrypt.generate_password_hash(new_password).decode("utf-8")
         db.session.commit()
 
+        log_security_event("Password Updated Successfully")
         flash("Password updated successfully!", "success")
         return redirect(url_for("dashboard"))
 
@@ -286,17 +637,31 @@ def change_password():
 @app.route("/logout")
 @login_required
 def logout():
+    log_security_event("User Logged Out")
     logout_user()
     flash("Logged out successfully.", "success")
     return redirect(url_for("login"))
 
 
 # ==========================
-# Database Initialization
+# Database Initialization & Admin Seeding
 # ==========================
 
 with app.app_context():
     db.create_all()
+
+    # Seed Default Admin Account if not exists
+    admin_user = User.query.filter_by(email="admin@cybervault.com").first()
+    if not admin_user:
+        hashed_admin_pass = bcrypt.generate_password_hash("Admin@123456").decode("utf-8")
+        default_admin = User(
+            fullname="System Administrator",
+            email="admin@cybervault.com",
+            password=hashed_admin_pass,
+            role="admin"
+        )
+        db.session.add(default_admin)
+        db.session.commit()
 
 
 # ==========================
