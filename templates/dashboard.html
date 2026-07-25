@@ -30,17 +30,17 @@
     <div class="soc-nav-tabs mb-4">
         <ul class="nav nav-tabs custom-tabs" id="internTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button" role="tab" aria-controls="vault" aria-selected="true">
+                <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button" role="tab">
                     <i class="fa-solid fa-vault me-2"></i> 1. Password & Secret Vault
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab" aria-controls="scanner" aria-selected="false">
+                <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab">
                     <i class="fa-solid fa-bug-slash me-2"></i> 2. Security Vulnerability Scanner
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab" aria-controls="logs" aria-selected="false">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
                     <i class="fa-solid fa-list-check me-2"></i> 3. Security Activity Logs
                 </button>
             </li>
@@ -51,7 +51,7 @@
     <div class="tab-content custom-tab-content" id="internTabContent">
 
         <!-- ================= TAB 1: PASSWORD & SECRET VAULT ================= -->
-        <div class="tab-pane fade show active" id="vault" role="tabpanel" aria-labelledby="vault-tab">
+        <div class="tab-pane fade show active" id="vault" role="tabpanel">
             <div class="row g-4">
                 <!-- ADD SECRET FORM -->
                 <div class="col-lg-5">
@@ -113,12 +113,12 @@
                                             </form>
                                         </div>
                                         <div class="secret-value-box p-3 rounded bg-black d-flex align-items-center justify-content-between flex-wrap gap-2">
-                                            <code id="secret-val-{{ item.id }}" class="text-warning fs-6">••••••••••••••••••••</code>
+                                            <code id="secret-val-{{ item.id }}" class="text-warning fs-6" data-hidden="true" data-secret="{{ item.decrypted_value }}">••••••••••••••••••••</code>
                                             <div class="d-flex gap-2">
-                                                <button type="button" class="btn-vault-action btn-vault-show" onclick="toggleSecretDisplay({{ item.id }}, '{{ item.decrypted_value }}')">
+                                                <button type="button" class="btn-vault-action btn-vault-show" onclick="toggleSecretDisplay({{ item.id }})">
                                                     <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> <span id="eye-text-{{ item.id }}">Show</span>
                                                 </button>
-                                                <button type="button" class="btn-vault-action btn-vault-copy" onclick="copyToClipboard('{{ item.decrypted_value }}')">
+                                                <button type="button" class="btn-vault-action btn-vault-copy" onclick="copySecretToClipboard({{ item.id }})">
                                                     <i class="fa-solid fa-copy me-1"></i> Copy
                                                 </button>
                                             </div>
@@ -137,7 +137,7 @@
         </div>
 
         <!-- ================= TAB 2: SECURITY VULNERABILITY SCANNER ================= -->
-        <div class="tab-pane fade" id="scanner" role="tabpanel" aria-labelledby="scanner-tab">
+        <div class="tab-pane fade" id="scanner" role="tabpanel">
             <div class="soc-card">
                 <h3 class="text-cyan mb-2">
                     <i class="fa-solid fa-bug-slash me-2"></i> Security Input Scanner (OWASP Top 10)
@@ -173,7 +173,7 @@
         </div>
 
         <!-- ================= TAB 3: SECURITY AUDIT LOGS ================= -->
-        <div class="tab-pane fade" id="logs" role="tabpanel" aria-labelledby="logs-tab">
+        <div class="tab-pane fade" id="logs" role="tabpanel">
             <!-- USER AUDIT LOGS -->
             <div class="soc-card mb-4">
                 <h3 class="text-cyan mb-3">
@@ -276,40 +276,64 @@
 
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
+<!-- INLINE JAVASCRIPT FOR SECURE FUNCTIONALITY -->
 <script>
-function toggleSecretDisplay(id, val) {
+function toggleSecretDisplay(id) {
     var el = document.getElementById("secret-val-" + id);
     var icon = document.getElementById("eye-icon-" + id);
     var textSpan = document.getElementById("eye-text-" + id);
-    
-    if (el.textContent === "••••••••••••••••••••") {
-        el.textContent = val;
-        icon.className = "fa-solid fa-eye-slash";
+    if (!el) return;
+
+    var isHidden = el.getAttribute("data-hidden") === "true";
+    var secretVal = el.getAttribute("data-secret");
+
+    if (isHidden) {
+        el.textContent = secretVal;
+        el.setAttribute("data-hidden", "false");
+        if (icon) icon.className = "fa-solid fa-eye-slash";
         if (textSpan) textSpan.textContent = "Hide";
     } else {
         el.textContent = "••••••••••••••••••••";
-        icon.className = "fa-solid fa-eye";
+        el.setAttribute("data-hidden", "true");
+        if (icon) icon.className = "fa-solid fa-eye";
         if (textSpan) textSpan.textContent = "Show";
     }
 }
 
-function copyToClipboard(text) {
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(text).then(function() {
-            alert("Copied to clipboard!");
-        }).catch(function(err) {
-            console.error("Copy error:", err);
+function copySecretToClipboard(id) {
+    var el = document.getElementById("secret-val-" + id);
+    if (!el) return;
+    var secretVal = el.getAttribute("data-secret");
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(secretVal).then(function() {
+            alert("Secret copied to clipboard!");
+        }).catch(function() {
+            fallbackCopyText(secretVal);
         });
     } else {
-        alert("Clipboard copy not supported by browser.");
+        fallbackCopyText(secretVal);
     }
+}
+
+function fallbackCopyText(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        alert("Secret copied to clipboard!");
+    } catch (err) {
+        alert("Unable to copy secret");
+    }
+    document.body.removeChild(textArea);
 }
 
 function setPresetPayload(type) {
     var input = document.getElementById("scanInput");
+    if (!input) return;
     if (type === 'sqli') {
         input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
     } else if (type === 'xss') {
@@ -320,9 +344,11 @@ function setPresetPayload(type) {
 }
 
 function runOwaspScan() {
-    var inputVal = document.getElementById("scanInput").value;
+    var input = document.getElementById("scanInput");
     var box = document.getElementById("scanResultsBox");
+    if (!input || !box) return;
 
+    var inputVal = input.value;
     if (!inputVal || !inputVal.trim()) {
         box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text to scan!</div>';
         return;
