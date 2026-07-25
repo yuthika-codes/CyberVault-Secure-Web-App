@@ -177,6 +177,17 @@
 
 {% block scripts %}
 <script>
+// Helper function to escape HTML special characters to prevent script breaking
+function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 // Global functions attached to window object
 window.setPresetPassword = function(type) {
     var input = document.getElementById("pwdScanInput");
@@ -235,7 +246,7 @@ window.runPasswordScan = function() {
             for (var i = 0; i < data.issues.length; i++) {
                 var iss = data.issues[i];
                 var badgeColor = (iss.severity === 'CRITICAL' || iss.severity === 'HIGH') ? 'bg-danger' : 'bg-warning text-dark';
-                issuesHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + iss.severity + '</span> <strong>' + iss.rule + ':</strong> ' + iss.description + '</div>';
+                issuesHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + escapeHtml(iss.severity) + '</span> <strong>' + escapeHtml(iss.rule) + ':</strong> ' + escapeHtml(iss.description) + '</div>';
             }
         }
 
@@ -248,22 +259,22 @@ window.runPasswordScan = function() {
             '</div>';
 
         var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + data.status + '</span></div>' +
+            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + escapeHtml(data.status) + '</span></div>' +
             '<div class="text-white fs-6">Score: <strong class="fs-5 text-cyan">' + data.score + '/100</strong></div>' +
             '</div>' +
             '<div class="mb-3 text-light-slate small">' +
-            '<strong>Length:</strong> ' + data.length + ' characters | <strong>Crack Time:</strong> <strong class="text-warning">' + data.crack_time + '</strong>' +
+            '<strong>Length:</strong> ' + data.length + ' characters | <strong>Crack Time:</strong> <strong class="text-warning">' + escapeHtml(data.crack_time) + '</strong>' +
             '</div>' +
             compHtml +
             issuesHtml +
             '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
-            '<strong>Security Recommendation:</strong> ' + data.recommendation +
+            '<strong>Security Recommendation:</strong> ' + escapeHtml(data.recommendation) +
             '</div>';
 
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + escapeHtml(err.message) + '</div>';
     });
 };
 
@@ -320,27 +331,27 @@ window.runUrlScan = function() {
         } else {
             for (var i = 0; i < data.threats_found.length; i++) {
                 var t = data.threats_found[i];
-                threatListHtml += '<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-bug me-2"></i> <strong>[' + t.rule + ']</strong> ' + t.description + '</div>';
+                threatListHtml += '<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-bug me-2"></i> <strong>[' + escapeHtml(t.rule) + ']</strong> ' + escapeHtml(t.description) + '</div>';
             }
         }
 
         var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + data.status + '</span></div>' +
+            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + escapeHtml(data.status) + '</span></div>' +
             '<div class="text-white fs-6">Safety Score: <strong class="fs-5 text-cyan">' + data.threat_score + '/100</strong></div>' +
             '</div>' +
             '<div class="mb-3 text-light-slate small">' +
-            '<strong>Target URL:</strong> <code class="text-warning">' + data.url + '</code><br>' +
-            '<strong>Domain:</strong> ' + data.domain + ' | <strong>Protocol:</strong> ' + data.scheme +
+            '<strong>Target URL:</strong> <code class="text-warning">' + escapeHtml(data.url) + '</code><br>' +
+            '<strong>Domain:</strong> ' + escapeHtml(data.domain) + ' | <strong>Protocol:</strong> ' + escapeHtml(data.scheme) +
             '</div>' +
             threatListHtml +
             '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
-            '<strong>Safety Guidance:</strong> ' + data.recommendation +
+            '<strong>Safety Guidance:</strong> ' + escapeHtml(data.recommendation) +
             '</div>';
 
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + escapeHtml(err.message) + '</div>';
     });
 };
 
@@ -350,7 +361,8 @@ window.setPresetCode = function(type) {
     if (type === 'sqli') {
         input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
     } else if (type === 'xss') {
-        input.value = "<script>alert('DOM Injection XSS Attack')</script>";
+        // Escaped script tag to prevent closing HTML script parser prematurely
+        input.value = "<" + "script>alert('DOM Injection XSS Attack')</" + "script>";
     } else if (type === 'cmd') {
         input.value = "ping 127.0.0.1; cat /etc/passwd; rm -rf /var/www";
     } else if (type === 'safe') {
@@ -400,23 +412,23 @@ window.runInputCodeScan = function() {
             for (var i = 0; i < data.threats_found.length; i++) {
                 var t = data.threats_found[i];
                 var badgeColor = (t.severity === 'CRITICAL') ? 'bg-danger' : 'bg-warning text-dark';
-                threatListHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + t.severity + '</span> <strong>[' + t.type + ']</strong> ' + t.rule + ': ' + t.description + '</div>';
+                threatListHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + escapeHtml(t.severity) + '</span> <strong>[' + escapeHtml(t.type) + ']</strong> ' + escapeHtml(t.rule) + ': ' + escapeHtml(t.description) + '</div>';
             }
         }
 
         var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + data.status + '</span></div>' +
+            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + escapeHtml(data.status) + '</span></div>' +
             '<div class="text-white fs-6">Safety Score: <strong class="fs-5 text-cyan">' + data.threat_score + '/100</strong></div>' +
             '</div>' +
             threatListHtml +
             '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
-            '<strong>Security Recommendation:</strong> ' + data.recommendation +
+            '<strong>Security Recommendation:</strong> ' + escapeHtml(data.recommendation) +
             '</div>';
 
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + escapeHtml(err.message) + '</div>';
     });
 };
 
