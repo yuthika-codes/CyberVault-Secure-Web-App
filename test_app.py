@@ -120,29 +120,20 @@ class CyberVaultRequirement5TestCase(unittest.TestCase):
         self.assertEqual(auth_data['status'], 'authorized')
         self.assertEqual(auth_data['authenticated_as']['email'], 'api@example.com')
 
-    def test_owasp_vulnerability_scanner_sqli_and_xss(self):
-        """Test OWASP Top 10 inspector API detecting SQLi and XSS payloads."""
-        # Test SQL Injection payload
-        sqli_res = self.app.post('/api/scan', json={
-            'input_text': "SELECT * FROM users WHERE email = 'admin@cybervault.com' OR '1'='1'; --"
+    def test_phishing_and_url_safety_scanner(self):
+        """Test Phishing & URL Safety Scanner API detecting suspicious and safe URLs."""
+        # Test Phishing URL
+        phishing_res = self.app.post('/api/url-scan', json={
+            'url': 'http://paypal-security-verify-account.xyz/login.php'
         })
-        self.assertEqual(sqli_res.status_code, 200)
-        sqli_data = json.loads(sqli_res.data)
-        self.assertEqual(sqli_data['status'], 'THREAT_DETECTED')
-        self.assertTrue(any(t['type'] == 'SQLi' for t in sqli_data['threats_found']))
+        self.assertEqual(phishing_res.status_code, 200)
+        phishing_data = json.loads(phishing_res.data)
+        self.assertIn(phishing_data['status'], ['SUSPICIOUS', 'PHISHING_ALERT'])
+        self.assertLess(phishing_data['threat_score'], 80)
 
-        # Test XSS payload
-        xss_res = self.app.post('/api/scan', json={
-            'input_text': "<script>alert('DOM Injection XSS Attack')</script>"
-        })
-        self.assertEqual(xss_res.status_code, 200)
-        xss_data = json.loads(xss_res.data)
-        self.assertEqual(xss_data['status'], 'THREAT_DETECTED')
-        self.assertTrue(any(t['type'] == 'XSS' for t in xss_data['threats_found']))
-
-        # Test safe payload
-        safe_res = self.app.post('/api/scan', json={
-            'input_text': "Normal user search query"
+        # Test Safe URL
+        safe_res = self.app.post('/api/url-scan', json={
+            'url': 'https://github.com/login'
         })
         self.assertEqual(safe_res.status_code, 200)
         safe_data = json.loads(safe_res.data)

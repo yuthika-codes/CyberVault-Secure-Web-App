@@ -1,6 +1,7 @@
 import os
 import re
 from datetime import datetime, timedelta
+from urllib.parse import urlparse
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -472,49 +473,135 @@ def api_secure_data():
 
 
 # ==========================
-# OWASP Vulnerability Inspector API
+# Phishing & Safe URL Scanner API
 # ==========================
 
+@app.route("/api/url-scan", methods=["POST"])
 @app.route("/api/scan", methods=["POST"])
-def api_scan():
-    """OWASP Top 10 payload vulnerability detection engine."""
-    data = request.get_json(silent=True) or request.form
-    input_text = data.get("input_text", "")
+def api_url_scan():
+    """Phishing & Safe URL Security Scanner Engine."""
+    data = request.get_json(silent=True, force=True)
+    if not data or not isinstance(data, dict):
+        data = request.form
+
+    target_url = (data.get("url") or data.get("input_text") or "").strip()
+    if not target_url:
+        return jsonify({
+            "status": "ERROR",
+            "threat_score": 0,
+            "risk_level": "UNKNOWN",
+            "threats_found": [{"rule": "Empty Input", "type": "WARNING", "description": "Please enter a valid web URL to scan."}],
+            "recommendation": "Enter a full web URL like 'https://google.com' or 'http://paypal-security.xyz/login'."
+        }), 400
+
+    # Format URL scheme for parsing
+    formatted_url = target_url
+    if not formatted_url.startswith(("http://", "https://")):
+        formatted_url = "http://" + formatted_url
+
+    try:
+        parsed = urlparse(formatted_url)
+        domain = parsed.netloc.lower() if parsed.netloc else target_url.lower()
+        path = parsed.path.lower() if parsed.path else ""
+    except Exception:
+        parsed = urlparse("http://" + target_url)
+        domain = target_url.lower()
+        path = ""
 
     threats = []
-    # SQL Injection detection heuristics
-    sql_patterns = [
-        (r"SELECT\s+.*\s+FROM", "SQL Injection: SELECT statement payload detected"),
-        (r"UNION\s+SELECT", "SQL Injection: UNION attack vector detected"),
-        (r"DROP\s+TABLE", "SQL Injection: Database destruction query detected"),
-        (r"'\s*OR\s*'\d+'\s*=\s*'\d+", "SQL Injection: Tautology bypass pattern detected (' OR '1'='1)")
+    safety_score = 100
+
+    # 1. Check for Raw IP Address in Host (High Phishing Risk)
+    ip_pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+    if re.match(ip_pattern, domain):
+        safety_score -= 40
+        threats.append({
+            "rule": "Raw IP Address Hostname",
+            "type": "HIGH_RISK",
+            "description": "URL uses a raw IP address hostname instead of a registered domain name, a technique frequently used by phishing bots."
+        })
+
+    # 2. Check for Brand Typosquatting & Phishing Keywords
+    phishing_keywords = [
+        "paypal", "bank", "verify", "secure", "login", "signin", "account",
+        "update", "appleid", "amazon", "netflix", "microsoft", "confirm",
+        "wallet", "crypto", "support"
     ]
-    for pattern, desc in sql_patterns:
-        if re.search(pattern, input_text, re.IGNORECASE):
-            threats.append({"type": "SQLi", "description": desc, "severity": "HIGH"})
+    trusted_domains = ["paypal.com", "bankofamerica.com", "apple.com", "amazon.com", "netflix.com", "microsoft.com", "google.com", "github.com"]
+    is_trusted = any(domain == td or domain.endswith("." + td) for td in trusted_domains)
 
-    # XSS detection heuristics
-    xss_patterns = [
-        (r"<script.*?>.*?</script>", "XSS: Script tag injection detected"),
-        (r"javascript:", "XSS: Inline JavaScript scheme detected"),
-        (r"onerror\s*=", "XSS: Event handler DOM injection detected"),
-        (r"<iframe.*?>", "XSS: Malicious iFrame injection detected")
-    ]
-    for pattern, desc in xss_patterns:
-        if re.search(pattern, input_text, re.IGNORECASE):
-            threats.append({"type": "XSS", "description": desc, "severity": "CRITICAL"})
+    if not is_trusted:
+        matched_keywords = [kw for kw in phishing_keywords if kw in domain or kw in path]
+        if len(matched_keywords) >= 2 or ("-" in domain and any(kw in domain for kw in phishing_keywords)):
+            safety_score -= 45
+            threats.append({
+                "rule": "Brand Mimicking & Phishing Keywords",
+                "type": "PHISHING_ALERT",
+                "description": f"Domain contains suspicious phishing keywords ({', '.join(matched_keywords)}) attempting to trick users into trusting a fake site."
+            })
+        elif len(matched_keywords) == 1:
+            safety_score -= 20
+            threats.append({
+                "rule": "Suspicious Sensitive Keyword",
+                "type": "SUSPICIOUS",
+                "description": f"Domain includes sensitive keyword '{matched_keywords[0]}'."
+            })
 
-    status = "SAFE" if not threats else "THREAT_DETECTED"
-    score = 100 - (len(threats) * 35)
-    score = max(0, score)
+    # 3. Check for Suspicious Top-Level Domains (TLDs)
+    high_risk_tlds = [".xyz", ".top", ".zip", ".club", ".work", ".cam", ".kim", ".info", ".tk", ".ml", ".ga", ".cf", ".gq"]
+    if any(domain.endswith(tld) for tld in high_risk_tlds):
+        safety_score -= 25
+        threats.append({
+            "rule": "High-Risk Top-Level Domain (TLD)",
+            "type": "SUSPICIOUS_TLD",
+            "description": "URL uses a TLD frequently associated with spam, malware, and phishing campaigns."
+        })
 
-    log_security_event(f"OWASP Input Scan: Threat Count = {len(threats)}", status=status)
+    # 4. Check for Unencrypted HTTP on Sensitive Login Paths
+    if parsed.scheme == "http" and any(k in path or k in domain for k in ["login", "bank", "verify", "secure", "account"]):
+        safety_score -= 20
+        threats.append({
+            "rule": "Unencrypted HTTP Protocol",
+            "type": "INSECURE_PROTOCOL",
+            "description": "Sensitive login/banking page transmitted over unencrypted HTTP protocol without SSL/TLS encryption."
+        })
+
+    # 5. Excessive Subdomain Depth
+    subdomain_parts = domain.split(".")
+    if len(subdomain_parts) >= 4:
+        safety_score -= 20
+        threats.append({
+            "rule": "Excessive Subdomain Chaining",
+            "type": "SUBDOMAIN_ABUSE",
+            "description": "Multiple subdomains chained together to obscure the real target domain."
+        })
+
+    safety_score = max(0, min(100, safety_score))
+
+    if safety_score >= 80:
+        status = "SAFE"
+        risk_level = "LOW"
+        recommendation = "This URL appears legitimate and safe to visit."
+    elif safety_score >= 50:
+        status = "SUSPICIOUS"
+        risk_level = "MEDIUM"
+        recommendation = "Proceed with caution. Verify the domain name carefully before entering any personal info."
+    else:
+        status = "PHISHING_ALERT"
+        risk_level = "HIGH"
+        recommendation = "DANGER! High probability of a phishing or fraudulent website. DO NOT enter passwords or financial data."
+
+    log_security_event(f"URL Scan Executed: {target_url} (Result: {status}, Score: {safety_score})")
+
     return jsonify({
         "status": status,
-        "threat_score": score,
+        "threat_score": safety_score,
+        "risk_level": risk_level,
+        "url": target_url,
+        "domain": domain,
+        "scheme": parsed.scheme.upper(),
         "threats_found": threats,
-        "input_analyzed": input_text,
-        "recommendation": "All SQLAlchemy ORM database queries parametrization & Jinja auto-escaping are active."
+        "recommendation": recommendation
     })
 
 

@@ -36,7 +36,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button" role="tab">
-                    <i class="fa-solid fa-bug-slash me-2"></i> 2. Security Vulnerability Scanner
+                    <i class="fa-solid fa-globe me-2"></i> 2. Phishing & URL Safety Scanner
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -136,36 +136,39 @@
             </div>
         </div>
 
-        <!-- ================= TAB 2: SECURITY VULNERABILITY SCANNER ================= -->
+        <!-- ================= TAB 2: PHISHING & URL SAFETY SCANNER ================= -->
         <div class="tab-pane fade" id="scanner" role="tabpanel">
             <div class="soc-card">
                 <h3 class="text-cyan mb-2">
-                    <i class="fa-solid fa-bug-slash me-2"></i> Security Input Scanner (OWASP Top 10)
+                    <i class="fa-solid fa-globe me-2"></i> Phishing & URL Safety Inspector
                 </h3>
                 <p class="text-light-slate mb-4">
-                    Test text for <strong>SQL Injection (SQLi)</strong> and <strong>Cross-Site Scripting (XSS)</strong> attacks.
+                    Enter any website URL to inspect it for <strong>Phishing Attacks</strong>, <strong>Brand Mimicking</strong>, and <strong>High-Risk Domains</strong>.
                 </p>
 
                 <div class="row g-4">
                     <div class="col-lg-6">
-                        <label class="form-label-access mb-2">Payload Test Console</label>
-                        <textarea id="scanInput" class="form-input mb-3" rows="4" placeholder="Enter text or click a quick test button below..."></textarea>
+                        <label class="form-label-access mb-2">Target Website URL</label>
+                        <input type="text" id="urlScanInput" class="form-input mb-3" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('sqli')">Test SQL Injection</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('xss')">Test XSS Attack</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('safe')">Test Normal Text</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('safe')">🟢 Safe Website (GitHub)</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('phishing')">🔴 Phishing Site (Fake PayPal)</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('ip')">⚠️ Raw IP Address Host</button>
                         </div>
 
-                        <button type="button" class="btn w-100" onclick="runOwaspScan()">
-                            <i class="fa-solid fa-magnifying-glass me-2"></i> Scan Input for Vulnerabilities
+                        <button type="button" class="btn w-100" onclick="runUrlScan()">
+                            <i class="fa-solid fa-shield-virus me-2"></i> Scan URL for Phishing & Threats
                         </button>
                     </div>
 
                     <div class="col-lg-6">
-                        <label class="form-label-access mb-2">Scan Results</label>
-                        <div class="bg-black p-4 rounded border border-secondary" id="scanResultsBox" style="min-height: 220px;">
-                            <div class="text-light-slate text-center py-4">Click "Scan Input for Vulnerabilities" to see security results.</div>
+                        <label class="form-label-access mb-2">URL Safety Analysis</label>
+                        <div class="bg-black p-4 rounded border border-secondary" id="urlScanResultsBox" style="min-height: 220px;">
+                            <div class="text-light-slate text-center py-4">
+                                <i class="fa-solid fa-magnifying-glass-location fa-2x mb-2 text-cyan"></i><br>
+                                Enter a website URL and click <strong>"Scan URL for Phishing & Threats"</strong>.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -331,57 +334,70 @@ function fallbackCopyText(text) {
     document.body.removeChild(textArea);
 }
 
-function setPresetPayload(type) {
-    var input = document.getElementById("scanInput");
+function setPresetUrl(type) {
+    var input = document.getElementById("urlScanInput");
     if (!input) return;
-    if (type === 'sqli') {
-        input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
-    } else if (type === 'xss') {
-        input.value = "<script>alert('XSS Test')</script>";
-    } else if (type === 'safe') {
-        input.value = "Welcome to CyberVault Security Application";
+    if (type === 'safe') {
+        input.value = "https://github.com/login";
+    } else if (type === 'phishing') {
+        input.value = "http://paypal-security-account-verify.xyz/login.php";
+    } else if (type === 'ip') {
+        input.value = "http://192.168.1.50/bank-signin/secure";
     }
 }
 
-function runOwaspScan() {
-    var input = document.getElementById("scanInput");
-    var box = document.getElementById("scanResultsBox");
+function runUrlScan() {
+    var input = document.getElementById("urlScanInput");
+    var box = document.getElementById("urlScanResultsBox");
     if (!input || !box) return;
 
-    var inputVal = input.value;
-    if (!inputVal || !inputVal.trim()) {
-        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text to scan!</div>';
+    var urlVal = input.value;
+    if (!urlVal || !urlVal.trim()) {
+        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a website URL to scan!</div>';
         return;
     }
 
-    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Scanning payload for threats...</div>';
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing URL domain, protocol, and phishing reputation...</div>';
 
-    fetch("/api/scan", {
+    fetch("/api/url-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input_text: inputVal })
+        body: JSON.stringify({ url: urlVal })
     })
     .then(function(res) { return res.json(); })
     .then(function(data) {
-        var threatHtml = "";
+        var statusBadgeClass = "bg-success";
+        var statusIcon = "fa-circle-check";
+
+        if (data.status === "PHISHING_ALERT") {
+            statusBadgeClass = "bg-danger";
+            statusIcon = "fa-triangle-exclamation";
+        } else if (data.status === "SUSPICIOUS") {
+            statusBadgeClass = "bg-warning text-dark";
+            statusIcon = "fa-triangle-exclamation";
+        }
+
+        var threatListHtml = "";
         if (!data.threats_found || data.threats_found.length === 0) {
-            threatHtml = '<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>SAFE:</strong> No threats detected in input!</div>';
+            threatListHtml = '<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>CLEAN & SAFE:</strong> No phishing indicators or suspicious domain patterns detected.</div>';
         } else {
             for (var i = 0; i < data.threats_found.length; i++) {
                 var t = data.threats_found[i];
-                threatHtml += '<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> <strong>[' + t.type + ']</strong> ' + t.description + '</div>';
+                threatListHtml += '<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-bug me-2"></i> <strong>[' + t.rule + ']</strong> ' + t.description + '</div>';
             }
         }
 
-        var statusClass = (data.status === 'SAFE') ? 'text-success' : 'text-danger';
-        var scoreClass = (data.threat_score >= 80) ? 'text-success' : 'text-danger';
-
         var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<span class="fs-5 text-white">Status: <strong class="' + statusClass + '">' + data.status + '</strong></span>' +
-            '<span class="fs-5 text-white">Score: <strong class="' + scoreClass + '">' + data.threat_score + '/100</strong></span>' +
-            '</div>' + threatHtml +
+            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + data.status + '</span></div>' +
+            '<div class="text-white fs-6">Safety Score: <strong class="fs-5 text-cyan">' + data.threat_score + '/100</strong></div>' +
+            '</div>' +
+            '<div class="mb-3 text-light-slate small">' +
+            '<strong>Target URL:</strong> <code class="text-warning">' + data.url + '</code><br>' +
+            '<strong>Domain:</strong> ' + data.domain + ' | <strong>Protocol:</strong> ' + data.scheme +
+            '</div>' +
+            threatListHtml +
             '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
-            '<strong>Protection Note:</strong> ' + data.recommendation +
+            '<strong>Safety Guidance:</strong> ' + data.recommendation +
             '</div>';
 
         box.innerHTML = html;
