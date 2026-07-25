@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}CyberVault | Home{% endblock %}
+
+{% block content %}
+<!-- HERO SECTION -->
+<section class="hero">
+    <div class="hero-content">
+        <i class="fa-solid fa-user-shield fa-5x mb-4 glow-icon"></i>
+        <h1>CyberVault</h1>
+        <h2>Secure Web Application</h2>
+        <p>
+            A security-focused web application built using <strong>Flask</strong>,
+            <strong>SQLite</strong>, and <strong>Bcrypt</strong> password hashing.
+            Demonstrating robust user authentication, session security, input validation,
+            and SQL Injection defense mechanisms.
+        </p>
+
+        <div class="buttons">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('dashboard') }}" class="btn">
+                    <i class="fa-solid fa-gauge-high me-2"></i> Go to Dashboard
+                </a>
+            {% else %}
+                <a href="{{ url_for('register') }}" class="btn">
+                    <i class="fa-solid fa-user-plus me-2"></i> Get Started
+                </a>
+                <a href="{{ url_for('login') }}" class="btn2">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> Login
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES SECTION -->
+<section class="features">
+    <div class="feature-card">
+        <i class="fa-solid fa-key fa-3x"></i>
+        <h3>Bcrypt Hashing</h3>
+        <p>
+            User credentials are encrypted using salt-augmented <strong>Bcrypt</strong> hashing
+            before reaching storage, protecting against dictionary attacks.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <i class="fa-solid fa-database fa-3x"></i>
+        <h3>SQL Injection Safe</h3>
+        <p>
+            SQLAlchemy ORM parametrizes queries automatically, preventing standard and advanced
+            SQL Injection threats.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <i class="fa-solid fa-user-lock fa-3x"></i>
+        <h3>Session Security</h3>
+        <p>
+            Session management backed by Flask-Login with secure cookie flags, login protection,
+            and route guard enforcement.
+        </p>
+    </div>
+</section>
+{% endblock %}

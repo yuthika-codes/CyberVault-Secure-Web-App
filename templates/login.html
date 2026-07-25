@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Login | CyberVault{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <i class="fa-solid fa-right-to-bracket login-icon"></i>
+        <h1>Welcome Back</h1>
+        <p>Login to access your secure dashboard.</p>
+
+        <!-- Login Form -->
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="mb-3">
+                <input
+                    type="email"
+                    name="email"
+                    class="form-input"
+                    placeholder="Email Address"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="password-box mb-4">
+                <input
+                    type="password"
+                    id="login_password"
+                    name="password"
+                    class="form-input"
+                    placeholder="Password"
+                    required
+                    autocomplete="current-password"
+                >
+                <i class="fa-solid fa-eye toggle-password"
+                   onclick="togglePassword('login_password', this)"
+                   title="Toggle Password Visibility"></i>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fa-solid fa-lock me-2"></i> Login
+            </button>
+        </form>
+
+        <div class="auth-footer mt-4">
+            <p class="text-muted">Don't have an account? <a href="{{ url_for('register') }}" class="auth-link">Register here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

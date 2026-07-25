@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile | CyberVault{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <i class="fa-solid fa-user-gear register-icon"></i>
+        <h1>My Profile</h1>
+        <p>Update your personal account information.</p>
+
+        <!-- Edit Profile Form -->
+        <form action="{{ url_for('profile') }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label text-start w-100 text-muted">Full Name</label>
+                <input
+                    type="text"
+                    name="fullname"
+                    class="form-input"
+                    value="{{ current_user.fullname }}"
+                    required
+                    autocomplete="name"
+                >
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-start w-100 text-muted">Email Address</label>
+                <input
+                    type="email"
+                    name="email"
+                    class="form-input"
+                    value="{{ current_user.email }}"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <button type="submit" class="btn-register">
+                <i class="fa-solid fa-floppy-disk me-2"></i> Save Changes
+            </button>
+        </form>
+
+        <div class="auth-footer mt-4">
+            <a href="{{ url_for('dashboard') }}" class="auth-link">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

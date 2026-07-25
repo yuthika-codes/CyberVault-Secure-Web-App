@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Register | CyberVault{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <i class="fa-solid fa-user-shield register-icon"></i>
+        <h1>Create Account</h1>
+        <p>Create your secure CyberVault account.</p>
+
+        <!-- Register Form -->
+        <form action="{{ url_for('register') }}" method="POST" id="registerForm">
+            <div class="mb-3">
+                <input
+                    type="text"
+                    name="fullname"
+                    class="form-input"
+                    placeholder="Full Name"
+                    required
+                    autocomplete="name"
+                >
+            </div>
+
+            <div class="mb-3">
+                <input
+                    type="email"
+                    name="email"
+                    class="form-input"
+                    placeholder="Email Address"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <!-- Password -->
+            <div class="password-box mb-2">
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="form-input"
+                    placeholder="Password"
+                    required
+                    autocomplete="new-password"
+                >
+                <i class="fa-solid fa-eye toggle-password"
+                   onclick="togglePassword('password', this)"
+                   title="Toggle Password Visibility"></i>
+            </div>
+
+            <!-- Password Strength Bar -->
+            <div class="password-strength-container mb-3">
+                <div class="strength-bar-bg">
+                    <div id="strengthBar" class="strength-bar"></div>
+                </div>
+                <span id="strengthText" class="strength-text">Password Strength</span>
+            </div>
+
+            <!-- Password Requirements Checklist -->
+            <div class="password-requirements mb-3">
+                <ul>
+                    <li id="req-length"><i class="fa-solid fa-circle-xmark text-danger"></i> At least 8 characters</li>
+                    <li id="req-upper"><i class="fa-solid fa-circle-xmark text-danger"></i> At least 1 uppercase letter (A-Z)</li>
+                    <li id="req-lower"><i class="fa-solid fa-circle-xmark text-danger"></i> At least 1 lowercase letter (a-z)</li>
+                    <li id="req-number"><i class="fa-solid fa-circle-xmark text-danger"></i> At least 1 number (0-9)</li>
+                    <li id="req-special"><i class="fa-solid fa-circle-xmark text-danger"></i> At least 1 special character (!@#$%^&*)</li>
+                </ul>
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="password-box mb-4">
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    class="form-input"
+                    placeholder="Confirm Password"
+                    required
+                    autocomplete="new-password"
+                >
+                <i class="fa-solid fa-eye toggle-password"
+                   onclick="togglePassword('confirm_password', this)"
+                   title="Toggle Password Visibility"></i>
+            </div>
+
+            <button type="submit" class="btn-register">
+                <i class="fa-solid fa-user-plus me-2"></i> Register
+            </button>
+        </form>
+
+        <div class="auth-footer mt-4">
+            <p class="text-muted">Already have an account? <a href="{{ url_for('login') }}" class="auth-link">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const passwordInput = document.getElementById("password");
+    const strengthBar = document.getElementById("strengthBar");
+    const strengthText = document.getElementById("strengthText");
+
+    const reqLength = document.getElementById("req-length");
+    const reqUpper = document.getElementById("req-upper");
+    const reqLower = document.getElementById("req-lower");
+    const reqNumber = document.getElementById("req-number");
+    const reqSpecial = document.getElementById("req-special");
+
+    function updateCheck(element, isValid) {
+        const icon = element.querySelector("i");
+        if (isValid) {
+            icon.className = "fa-solid fa-circle-check text-success";
+            element.classList.add("valid");
+        } else {
+            icon.className = "fa-solid fa-circle-xmark text-danger";
+            element.classList.remove("valid");
+        }
+    }
+
+    passwordInput.addEventListener("input", function() {
+        const val = passwordInput.value;
+        const hasLength = val.length >= 8;
+        const hasUpper = /[A-Z]/.test(val);
+        const hasLower = /[a-z]/.test(val);
+        const hasNumber = /[0-9]/.test(val);
+        const hasSpecial = /[!@#$%^&*]/.test(val);
+
+        updateCheck(reqLength, hasLength);
+        updateCheck(reqUpper, hasUpper);
+        updateCheck(reqLower, hasLower);
+        updateCheck(reqNumber, hasNumber);
+        updateCheck(reqSpecial, hasSpecial);
+
+        let score = 0;
+        if (hasLength) score++;
+        if (hasUpper) score++;
+        if (hasLower) score++;
+        if (hasNumber) score++;
+        if (hasSpecial) score++;
+
+        strengthBar.className = "strength-bar";
+        if (val.length === 0) {
+            strengthBar.style.width = "0%";
+            strengthText.textContent = "Password Strength";
+            strengthText.style.color = "#cbd5e1";
+        } else if (score <= 2) {
+            strengthBar.style.width = "33%";
+            strengthBar.classList.add("weak");
+            strengthText.textContent = "Weak Password";
+            strengthText.style.color = "#ef4444";
+        } else if (score <= 4) {
+            strengthBar.style.width = "66%";
+            strengthBar.classList.add("medium");
+            strengthText.textContent = "Medium Strength";
+            strengthText.style.color = "#f59e0b";
+        } else {
+            strengthBar.style.width = "100%";
+            strengthBar.classList.add("strong");
+            strengthText.textContent = "Strong Password";
+            strengthText.style.color = "#10b981";
+        }
+    });
+});
+</script>
+{% endblock %}
