@@ -20,49 +20,51 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
-    <!-- Immediate Password Visibility Toggle Utility -->
+    <!-- Universal Password Visibility Toggle Utility with Global Event Delegation -->
     <script>
         window.togglePassword = function(inputId, iconElement) {
-            var input = document.getElementById(inputId);
+            var input = typeof inputId === "string" ? document.getElementById(inputId) : inputId;
+            if (!input && iconElement) {
+                var container = iconElement.closest(".password-box") || iconElement.parentElement;
+                if (container) input = container.querySelector("input");
+            }
             if (!input) return;
 
-            if (!iconElement || !(iconElement instanceof HTMLElement)) {
-                var parent = input.closest(".password-box") || input.parentElement;
-                if (parent) {
-                    iconElement = parent.querySelector(".toggle-password, i.fa-eye, i.fa-eye-slash");
-                }
+            var willBeText = (input.type === "password");
+            input.type = willBeText ? "text" : "password";
+
+            var container = input.closest(".password-box") || input.parentElement;
+            var targetIcons = [];
+
+            if (iconElement) targetIcons.push(iconElement);
+            if (container) {
+                var found = container.querySelectorAll(".toggle-password, i.fa-eye, i.fa-eye-slash");
+                found.forEach(function(ic) { if (targetIcons.indexOf(ic) === -1) targetIcons.push(ic); });
             }
 
-            if (input.type === "password") {
-                input.type = "text";
-                if (iconElement) {
-                    iconElement.classList.remove("fa-eye");
-                    iconElement.classList.add("fa-eye-slash");
+            targetIcons.forEach(function(icon) {
+                if (willBeText) {
+                    icon.classList.remove("fa-eye");
+                    icon.classList.add("fa-eye-slash");
+                } else {
+                    icon.classList.remove("fa-eye-slash");
+                    icon.classList.add("fa-eye");
                 }
-            } else {
-                input.type = "password";
-                if (iconElement) {
-                    iconElement.classList.remove("fa-eye-slash");
-                    iconElement.classList.add("fa-eye");
-                }
-            }
+            });
         };
 
-        // Automatic fallback listener attachment for all password toggle elements
-        document.addEventListener("DOMContentLoaded", function() {
-            var toggles = document.querySelectorAll(".toggle-password, [data-toggle-password]");
-            toggles.forEach(function(toggle) {
-                toggle.addEventListener("click", function(e) {
-                    e.stopPropagation();
-                    var parent = toggle.closest(".password-box") || toggle.parentElement;
-                    if (parent) {
-                        var input = parent.querySelector("input");
-                        if (input && input.id) {
-                            window.togglePassword(input.id, toggle);
-                        }
+        // Universal document event delegation to catch clicks on any .toggle-password icon
+        document.addEventListener("click", function(e) {
+            var icon = e.target.closest(".toggle-password, [data-toggle-password]");
+            if (icon) {
+                var container = icon.closest(".password-box") || icon.parentElement;
+                if (container) {
+                    var input = container.querySelector("input");
+                    if (input) {
+                        window.togglePassword(input.id || input, icon);
                     }
-                });
-            });
+                }
+            }
         });
     </script>
     {% block head %}{% endblock %}

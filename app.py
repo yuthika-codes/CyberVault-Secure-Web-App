@@ -215,8 +215,8 @@ def register():
     if request.method == "POST":
         fullname = request.form.get("fullname", "").strip()
         email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
+        password = request.form.get("password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
         role = request.form.get("role", "user")
 
         if role not in ["user", "admin"]:
@@ -224,25 +224,25 @@ def register():
 
         if not fullname:
             flash("Full Name is required", "danger")
-            return redirect(url_for("register"))
+            return render_template("register.html", fullname=fullname, email=email)
 
         if not is_valid_email(email):
             flash("Please enter a valid email address", "danger")
-            return redirect(url_for("register"))
+            return render_template("register.html", fullname=fullname, email=email)
 
         is_valid, err_msg = validate_password(password)
         if not is_valid:
             flash(err_msg, "danger")
-            return redirect(url_for("register"))
+            return render_template("register.html", fullname=fullname, email=email)
 
         if password != confirm_password:
             flash("Passwords do not match", "danger")
-            return redirect(url_for("register"))
+            return render_template("register.html", fullname=fullname, email=email)
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash("Email address is already registered", "warning")
-            return redirect(url_for("register"))
+            flash("Email address is already registered. Please log in.", "warning")
+            return redirect(url_for("login"))
 
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         new_user = User(
@@ -272,7 +272,7 @@ def login():
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "")
+        password = request.form.get("password", "").strip()
 
         user = User.query.filter_by(email=email).first()
 
@@ -294,7 +294,8 @@ def login():
         flash("Invalid email or password", "danger")
         return redirect(url_for("login"))
 
-    return render_template("login.html")
+    return render_template("register.html") if False else render_template("login.html")
+
 
 
 @app.route("/auth/oauth/google")

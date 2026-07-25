@@ -64,7 +64,7 @@
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Candidate Password to Scan</label>
                         <div class="password-box mb-3">
-                            <input type="password" id="pwdScanInput" class="form-input" value="CyberV@ult#2026!" placeholder="Enter password to evaluate security strength...">
+                            <input type="password" id="pwdScanInput" class="form-input" value="" placeholder="Enter password to evaluate security strength...">
                             <i class="fa-solid fa-eye toggle-password" id="pwdEyeIcon" onclick="window.togglePassword('pwdScanInput', this)" title="Toggle Password Visibility"></i>
                         </div>
 
@@ -105,7 +105,7 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Target Website URL</label>
-                        <input type="text" id="urlScanInput" class="form-input mb-3" value="http://paypal-security-account-verify.xyz/login.php" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
+                        <input type="text" id="urlScanInput" class="form-input mb-3" value="" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
                             <button type="button" id="btnPresetUrlSafe" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('safe')">🟢 Safe Website (GitHub)</button>
@@ -147,7 +147,7 @@
                         <input type="file" id="qrFileInput" accept="image/*" class="form-control bg-dark text-white border-secondary mb-3">
 
                         <label class="form-label-access mb-2">Or Enter QR Code Content / Destination URL</label>
-                        <input type="text" id="qrTextInput" class="form-input mb-3" value="https://example.com" placeholder="e.g. https://example.com or http://paypal-verify.xyz">
+                        <input type="text" id="qrTextInput" class="form-input mb-3" value="" placeholder="e.g. https://example.com or http://paypal-verify.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
                             <button type="button" id="btnPresetQrSafe" class="btn btn-sm btn2 text-white" onclick="setPresetQr('safe')">🟢 Safe QR (https://example.com)</button>
@@ -472,7 +472,7 @@ function setPresetPassword(t) { window.setPresetPassword(t); }
 function setPresetUrl(t) { window.setPresetUrl(t); }
 function setPresetQr(t) { window.setPresetQr(t); }
 
-// Event listeners setup & auto-scan initial execution
+// Event listeners setup (Scanners run ON USER ACTION, not automatically on page load)
 function initDashboardScanners() {
     var btnPwd = document.getElementById("btnPasswordScan");
     if (btnPwd) btnPwd.addEventListener("click", function() { window.runPasswordScan(); });
@@ -494,11 +494,6 @@ function initDashboardScanners() {
 
     var qrInput = document.getElementById("qrTextInput");
     if (qrInput) qrInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runQrScan(); });
-
-    // Auto-run initial scans on page load for immediate results
-    window.runPasswordScan();
-    window.runUrlScan();
-    window.runQrScan();
 }
 
 if (document.readyState === "loading") {
