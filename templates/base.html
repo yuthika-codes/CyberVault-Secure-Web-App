@@ -87,21 +87,41 @@
     <!-- Bootstrap 5.3.3 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Password Visibility Toggle Utility -->
+    <!-- Universal Password Visibility Toggle Utility -->
     <script>
-        function togglePassword(inputId, iconElement) {
-            const input = document.getElementById(inputId);
+        window.togglePassword = function(inputId, iconElement) {
+            var input = document.getElementById(inputId);
             if (!input) return;
             if (input.type === "password") {
                 input.type = "text";
-                iconElement.classList.remove("fa-eye");
-                iconElement.classList.add("fa-eye-slash");
+                if (iconElement) {
+                    iconElement.classList.remove("fa-eye");
+                    iconElement.classList.add("fa-eye-slash");
+                }
             } else {
                 input.type = "password";
-                iconElement.classList.remove("fa-eye-slash");
-                iconElement.classList.add("fa-eye");
+                if (iconElement) {
+                    iconElement.classList.remove("fa-eye-slash");
+                    iconElement.classList.add("fa-eye");
+                }
             }
-        }
+        };
+
+        // Attach click listeners to all toggle-password icons automatically
+        document.addEventListener("DOMContentLoaded", function() {
+            var toggles = document.querySelectorAll(".toggle-password");
+            toggles.forEach(function(toggle) {
+                toggle.addEventListener("click", function() {
+                    var parent = toggle.closest(".password-box") || toggle.parentElement;
+                    if (parent) {
+                        var input = parent.querySelector("input");
+                        if (input && input.id) {
+                            window.togglePassword(input.id, toggle);
+                        }
+                    }
+                });
+            });
+        });
     </script>
 
     {% block scripts %}{% endblock %}

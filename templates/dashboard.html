@@ -63,15 +63,15 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Candidate Password to Scan</label>
-                        <div class="position-relative mb-3">
-                            <input type="password" id="pwdScanInput" class="form-input pe-5" placeholder="Enter password to evaluate security strength...">
-                            <i class="fa-solid fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-light-slate" id="pwdEyeIcon" onclick="toggleScanPasswordVisibility()" style="cursor: pointer;"></i>
+                        <div class="password-box mb-3">
+                            <input type="password" id="pwdScanInput" class="form-input" value="CyberV@ult#2026!" placeholder="Enter password to evaluate security strength...">
+                            <i class="fa-solid fa-eye toggle-password" id="pwdEyeIcon" onclick="window.togglePassword('pwdScanInput', this)" title="Toggle Password Visibility"></i>
                         </div>
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('weak')">🔴 Weak / Leaked (123456)</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('medium')">🟡 Medium (Password12)</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('strong')">🟢 Strong (CyberV@ult#2026!)</button>
+                            <button type="button" id="btnPresetPwdWeak" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('weak')">🔴 Weak / Leaked (123456)</button>
+                            <button type="button" id="btnPresetPwdMed" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('medium')">🟡 Medium (Password12)</button>
+                            <button type="button" id="btnPresetPwdStrong" class="btn btn-sm btn2 text-white" onclick="setPresetPassword('strong')">🟢 Strong (CyberV@ult#2026!)</button>
                         </div>
 
                         <button type="button" id="btnPasswordScan" class="btn w-100" onclick="runPasswordScan()">
@@ -105,12 +105,12 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Target Website URL</label>
-                        <input type="text" id="urlScanInput" class="form-input mb-3" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
+                        <input type="text" id="urlScanInput" class="form-input mb-3" value="http://paypal-security-account-verify.xyz/login.php" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('safe')">🟢 Safe Website (GitHub)</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('phishing')">🔴 Phishing Site (Fake PayPal)</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('ip')">⚠️ Raw IP Address Host</button>
+                            <button type="button" id="btnPresetUrlSafe" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('safe')">🟢 Safe Website (GitHub)</button>
+                            <button type="button" id="btnPresetUrlPhish" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('phishing')">🔴 Phishing Site (Fake PayPal)</button>
+                            <button type="button" id="btnPresetUrlIp" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('ip')">⚠️ Raw IP Address Host</button>
                         </div>
 
                         <button type="button" id="btnUrlScan" class="btn w-100" onclick="runUrlScan()">
@@ -144,13 +144,13 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Payload / Input Text to Scan</label>
-                        <textarea id="inputCodeScanInput" class="form-input mb-3" rows="4" placeholder="Enter text, search query, or code snippet to analyze for malicious code..."></textarea>
+                        <textarea id="inputCodeScanInput" class="form-input mb-3" rows="4" placeholder="Enter text, search query, or code snippet to analyze for malicious code...">SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --</textarea>
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetCode('sqli')">🔴 SQL Injection Payload</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetCode('xss')">🔴 XSS Script Tag</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetCode('cmd')">🔴 OS Command Injection</button>
-                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetCode('safe')">🟢 Normal Safe Text</button>
+                            <button type="button" id="btnPresetCodeSqli" class="btn btn-sm btn2 text-white" onclick="setPresetCode('sqli')">🔴 SQL Injection Payload</button>
+                            <button type="button" id="btnPresetCodeXss" class="btn btn-sm btn2 text-white" onclick="setPresetCode('xss')">🔴 XSS Script Tag</button>
+                            <button type="button" id="btnPresetCodeCmd" class="btn btn-sm btn2 text-white" onclick="setPresetCode('cmd')">🔴 OS Command Injection</button>
+                            <button type="button" id="btnPresetCodeSafe" class="btn btn-sm btn2 text-white" onclick="setPresetCode('safe')">🟢 Normal Safe Text</button>
                         </div>
 
                         <button type="button" id="btnInputCodeScan" class="btn w-100" onclick="runInputCodeScan()">
@@ -173,31 +173,12 @@
 
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-function toggleScanPasswordVisibility() {
-    var input = document.getElementById("pwdScanInput");
-    var icon = document.getElementById("pwdEyeIcon");
-    if (!input) return;
-    if (input.type === "password") {
-        input.type = "text";
-        if (icon) {
-            icon.classList.remove("fa-eye");
-            icon.classList.add("fa-eye-slash");
-        }
-    } else {
-        input.type = "password";
-        if (icon) {
-            icon.classList.remove("fa-eye-slash");
-            icon.classList.add("fa-eye");
-        }
-    }
-}
-
-// -------------------------------------------------------------
-// TAB 1: PASSWORD SECURITY SCANNER
-// -------------------------------------------------------------
-function setPresetPassword(type) {
+// Global functions attached to window object
+window.setPresetPassword = function(type) {
     var input = document.getElementById("pwdScanInput");
     if (!input) return;
     if (type === 'weak') {
@@ -207,10 +188,10 @@ function setPresetPassword(type) {
     } else if (type === 'strong') {
         input.value = "CyberV@ult#2026!";
     }
-    runPasswordScan();
-}
+    window.runPasswordScan();
+};
 
-function runPasswordScan() {
+window.runPasswordScan = function() {
     var input = document.getElementById("pwdScanInput");
     var box = document.getElementById("pwdScanResultsBox");
     if (!input || !box) return;
@@ -284,12 +265,9 @@ function runPasswordScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
-}
+};
 
-// -------------------------------------------------------------
-// TAB 2: PHISHING & URL SCANNER
-// -------------------------------------------------------------
-function setPresetUrl(type) {
+window.setPresetUrl = function(type) {
     var input = document.getElementById("urlScanInput");
     if (!input) return;
     if (type === 'safe') {
@@ -299,10 +277,10 @@ function setPresetUrl(type) {
     } else if (type === 'ip') {
         input.value = "http://192.168.1.50/bank-signin/secure";
     }
-    runUrlScan();
-}
+    window.runUrlScan();
+};
 
-function runUrlScan() {
+window.runUrlScan = function() {
     var input = document.getElementById("urlScanInput");
     var box = document.getElementById("urlScanResultsBox");
     if (!input || !box) return;
@@ -364,12 +342,9 @@ function runUrlScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
-}
+};
 
-// -------------------------------------------------------------
-// TAB 3: MALICIOUS CODE SCANNER
-// -------------------------------------------------------------
-function setPresetCode(type) {
+window.setPresetCode = function(type) {
     var input = document.getElementById("inputCodeScanInput");
     if (!input) return;
     if (type === 'sqli') {
@@ -381,10 +356,10 @@ function setPresetCode(type) {
     } else if (type === 'safe') {
         input.value = "Welcome to CyberVault Security Application. Please enter search query.";
     }
-    runInputCodeScan();
-}
+    window.runInputCodeScan();
+};
 
-function runInputCodeScan() {
+window.runInputCodeScan = function() {
     var input = document.getElementById("inputCodeScanInput");
     var box = document.getElementById("inputCodeScanResultsBox");
     if (!input || !box) return;
@@ -443,6 +418,43 @@ function runInputCodeScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
+};
+
+// Aliases for inline scope
+function runPasswordScan() { window.runPasswordScan(); }
+function runUrlScan() { window.runUrlScan(); }
+function runInputCodeScan() { window.runInputCodeScan(); }
+function setPresetPassword(t) { window.setPresetPassword(t); }
+function setPresetUrl(t) { window.setPresetUrl(t); }
+function setPresetCode(t) { window.setPresetCode(t); }
+
+// Event listeners setup & auto-scan initial execution
+function initDashboardScanners() {
+    var btnPwd = document.getElementById("btnPasswordScan");
+    if (btnPwd) btnPwd.addEventListener("click", function() { window.runPasswordScan(); });
+
+    var btnUrl = document.getElementById("btnUrlScan");
+    if (btnUrl) btnUrl.addEventListener("click", function() { window.runUrlScan(); });
+
+    var btnCode = document.getElementById("btnInputCodeScan");
+    if (btnCode) btnCode.addEventListener("click", function() { window.runInputCodeScan(); });
+
+    var pwdInput = document.getElementById("pwdScanInput");
+    if (pwdInput) pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runPasswordScan(); });
+
+    var urlInput = document.getElementById("urlScanInput");
+    if (urlInput) urlInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runUrlScan(); });
+
+    // Auto-run initial scans on page load for immediate results
+    window.runPasswordScan();
+    window.runUrlScan();
+    window.runInputCodeScan();
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDashboardScanners);
+} else {
+    initDashboardScanners();
 }
 </script>
 {% endblock %}
