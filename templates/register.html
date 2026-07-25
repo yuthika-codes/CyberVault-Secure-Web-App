@@ -35,7 +35,9 @@
 
             <!-- Role Selection -->
             <div class="mb-3 text-start">
-                <label class="form-label text-muted small ms-1">Account Access Role</label>
+                <label class="form-label-access">
+                    <i class="fa-solid fa-user-gear me-1"></i> Account Access Role
+                </label>
                 <select name="role" class="form-input">
                     <option value="user" selected>User (Standard Access)</option>
                     <option value="admin">Admin (Full RBAC Admin Access)</option>
@@ -99,7 +101,7 @@
         </form>
 
         <div class="auth-footer mt-4">
-            <p class="text-muted">Already have an account? <a href="{{ url_for('login') }}" class="auth-link">Login here</a></p>
+            <p>Already registered? <a href="{{ url_for('login') }}" class="auth-link">Login here to access dashboard</a></p>
         </div>
     </div>
 </div>

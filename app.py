@@ -33,8 +33,8 @@ FERNET_KEY_ENV = os.environ.get("FERNET_KEY")
 if FERNET_KEY_ENV:
     cipher_suite = Fernet(FERNET_KEY_ENV.encode())
 else:
-    # Use deterministic key derived for local environment
-    cipher_suite = Fernet(b'ZGVtb19mZXJuZXRfa2V5XzMyX2J5dGVzX2xvY2FsX3NlY3VyZT0=')
+    # Generate valid base64 Fernet key dynamically
+    cipher_suite = Fernet(Fernet.generate_key())
 
 # ==========================
 # Initialize Extensions
@@ -255,8 +255,11 @@ def register():
         db.session.commit()
 
         log_security_event(f"User Registered: {email} (Role: {role})", user_id=new_user.id)
-        flash("Registration successful! Please log in.", "success")
-        return redirect(url_for("login"))
+        
+        # Auto-login upon registration for direct transition to dashboard
+        login_user(new_user, remember=True)
+        flash("Registration successful! Welcome to your CyberVault Dashboard.", "success")
+        return redirect(url_for("dashboard"))
 
     return render_template("register.html")
 
@@ -280,7 +283,7 @@ def login():
         if user and bcrypt.check_password_hash(user.password, password):
             user.last_login = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
             db.session.commit()
-            login_user(user)
+            login_user(user, remember=True)
 
             log_security_event(f"User Login Success: {email}", user_id=user.id)
             flash("Login successful! Welcome back.", "success")

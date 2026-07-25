@@ -421,20 +421,38 @@ main {
 }
 
 .auth-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
     padding-top: 20px;
 }
 
+.auth-footer p {
+    color: #f1f5f9 !important;
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 0;
+}
+
 .auth-link {
-    color: var(--accent-cyan);
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.3s ease;
+    color: #38bdf8 !important;
+    text-decoration: underline;
+    font-weight: 700;
+    margin-left: 4px;
+    transition: all 0.3s ease;
 }
 
 .auth-link:hover {
-    color: #7dd3fc;
-    text-decoration: underline;
+    color: #7dd3fc !important;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+}
+
+.form-label-access {
+    color: #38bdf8 !important;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 /* ==========================================================================
