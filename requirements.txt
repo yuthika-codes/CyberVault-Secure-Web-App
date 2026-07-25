@@ -9,10 +9,14 @@ Flask-Login==0.6.3
 Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.2.2
 greenlet==3.5.4
+gunicorn==23.0.0
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
+opencv-python-headless==4.11.0.86
+pillow==11.1.0
 PyJWT==2.10.1
+qrcode==8.0
 SQLAlchemy==2.0.51
 typing_extensions==4.16.0
 Werkzeug==3.1.8
