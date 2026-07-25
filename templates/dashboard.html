@@ -41,7 +41,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button" role="tab">
-                    <i class="fa-solid fa-code me-2"></i> 3. Input & Malicious Code Scanner
+                    <i class="fa-solid fa-qrcode me-2"></i> 3. QR Code Safety Scanner
                 </button>
             </li>
         </ul>
@@ -131,39 +131,41 @@
             </div>
         </div>
 
-        <!-- ================= TAB 3: MALICIOUS CODE & INPUT SECURITY SCANNER ================= -->
+        <!-- ================= TAB 3: QR CODE SAFETY SCANNER ================= -->
         <div class="tab-pane fade" id="logs" role="tabpanel">
             <div class="soc-card">
                 <h3 class="text-cyan mb-2">
-                    <i class="fa-solid fa-code me-2"></i> Malicious Code & Input Security Scanner
+                    <i class="fa-solid fa-qrcode me-2"></i> QR Code Safety Scanner
                 </h3>
                 <p class="text-light-slate mb-4">
-                    Analyze user text or code snippets for <strong>SQL Injection</strong>, <strong>XSS Script Attacks</strong>, <strong>Command Injection</strong>, and <strong>Path Traversal</strong>.
+                    Upload a QR code image or enter QR code content to inspect destination URLs for <strong>phishing</strong>, <strong>malware downloads</strong>, and <strong>security risks</strong>.
                 </p>
 
                 <div class="row g-4">
                     <div class="col-lg-6">
-                        <label class="form-label-access mb-2">Payload / Input Text to Scan</label>
-                        <textarea id="inputCodeScanInput" class="form-input mb-3" rows="4" placeholder="Enter text, search query, or code snippet to analyze for malicious code...">SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --</textarea>
+                        <label class="form-label-access mb-2">Upload QR Code Image</label>
+                        <input type="file" id="qrFileInput" accept="image/*" class="form-control bg-dark text-white border-secondary mb-3">
+
+                        <label class="form-label-access mb-2">Or Enter QR Code Content / Destination URL</label>
+                        <input type="text" id="qrTextInput" class="form-input mb-3" value="https://example.com" placeholder="e.g. https://example.com or http://paypal-verify.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
-                            <button type="button" id="btnPresetCodeSqli" class="btn btn-sm btn2 text-white" onclick="setPresetCode('sqli')">🔴 SQL Injection Payload</button>
-                            <button type="button" id="btnPresetCodeXss" class="btn btn-sm btn2 text-white" onclick="setPresetCode('xss')">🔴 XSS Script Tag</button>
-                            <button type="button" id="btnPresetCodeCmd" class="btn btn-sm btn2 text-white" onclick="setPresetCode('cmd')">🔴 OS Command Injection</button>
-                            <button type="button" id="btnPresetCodeSafe" class="btn btn-sm btn2 text-white" onclick="setPresetCode('safe')">🟢 Normal Safe Text</button>
+                            <button type="button" id="btnPresetQrSafe" class="btn btn-sm btn2 text-white" onclick="setPresetQr('safe')">🟢 Safe QR (https://example.com)</button>
+                            <button type="button" id="btnPresetQrPhish" class="btn btn-sm btn2 text-white" onclick="setPresetQr('phishing')">⚠️ Suspicious QR (Phishing)</button>
+                            <button type="button" id="btnPresetQrMalware" class="btn btn-sm btn2 text-white" onclick="setPresetQr('malware')">🚨 Malicious QR (.exe Download)</button>
                         </div>
 
-                        <button type="button" id="btnInputCodeScan" class="btn w-100" onclick="runInputCodeScan()">
-                            <i class="fa-solid fa-bug-slash me-2"></i> Scan Input for Malicious Code
+                        <button type="button" id="btnQrScan" class="btn w-100" onclick="runQrScan()">
+                            <i class="fa-solid fa-qrcode me-2"></i> Scan QR Code Safety
                         </button>
                     </div>
 
                     <div class="col-lg-6">
-                        <label class="form-label-access mb-2">Code Analysis & Threat Report</label>
-                        <div class="bg-black p-4 rounded border border-secondary" id="inputCodeScanResultsBox" style="min-height: 220px;">
+                        <label class="form-label-access mb-2">QR Code Security Evaluation Report</label>
+                        <div class="bg-black p-4 rounded border border-secondary" id="qrScanResultsBox" style="min-height: 240px;">
                             <div class="text-light-slate text-center py-4">
-                                <i class="fa-solid fa-terminal fa-2x mb-2 text-cyan"></i><br>
-                                Enter text or code and click <strong>"Scan Input for Malicious Code"</strong>.
+                                <i class="fa-solid fa-qrcode fa-2x mb-2 text-cyan"></i><br>
+                                Upload a QR code or enter content and click <strong>"Scan QR Code Safety"</strong>.
                             </div>
                         </div>
                     </div>
@@ -355,90 +357,120 @@ window.runUrlScan = function() {
     });
 };
 
-window.setPresetCode = function(type) {
-    var input = document.getElementById("inputCodeScanInput");
-    if (!input) return;
-    if (type === 'sqli') {
-        input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
-    } else if (type === 'xss') {
-        // Escaped script tag to prevent closing HTML script parser prematurely
-        input.value = "<" + "script>alert('DOM Injection XSS Attack')</" + "script>";
-    } else if (type === 'cmd') {
-        input.value = "ping 127.0.0.1; cat /etc/passwd; rm -rf /var/www";
-    } else if (type === 'safe') {
-        input.value = "Welcome to CyberVault Security Application. Please enter search query.";
+// =========================================================================
+// TAB 3: QR CODE SAFETY SCANNER
+// =========================================================================
+window.setPresetQr = function(type) {
+    var textInput = document.getElementById("qrTextInput");
+    var fileInput = document.getElementById("qrFileInput");
+    if (fileInput) fileInput.value = "";
+    if (!textInput) return;
+
+    if (type === 'safe') {
+        textInput.value = "https://example.com";
+    } else if (type === 'phishing') {
+        textInput.value = "http://paypal-security-account-verify.xyz/login.php";
+    } else if (type === 'malware') {
+        textInput.value = "http://download-free-security-app.com/update.exe";
     }
-    window.runInputCodeScan();
+    window.runQrScan();
 };
 
-window.runInputCodeScan = function() {
-    var input = document.getElementById("inputCodeScanInput");
-    var box = document.getElementById("inputCodeScanResultsBox");
-    if (!input || !box) return;
+window.runQrScan = function() {
+    var fileInput = document.getElementById("qrFileInput");
+    var textInput = document.getElementById("qrTextInput");
+    var box = document.getElementById("qrScanResultsBox");
+    if (!box) return;
 
-    var codeVal = input.value;
-    if (!codeVal || !codeVal.trim()) {
-        box.innerHTML = '<div class="text-warning font-weight-bold p-3 text-center"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text or code payload to scan!</div>';
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>Decoding QR code & analyzing destination URL...</div>';
+
+    var file = fileInput && fileInput.files && fileInput.files[0];
+    if (file) {
+        // Upload image via FormData
+        var formData = new FormData();
+        formData.append("qr_file", file);
+
+        fetch("/api/qr-scan", {
+            method: "POST",
+            body: formData
+        })
+        .then(function(res) { return res.json(); })
+        .then(renderQrResults)
+        .catch(function(err) {
+            box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> QR Scan failed: ' + escapeHtml(err.message) + '</div>';
+        });
+    } else {
+        var contentVal = textInput ? textInput.value : "";
+        if (!contentVal || !contentVal.trim()) {
+            box.innerHTML = '<div class="text-warning font-weight-bold p-3 text-center"><i class="fa-solid fa-circle-exclamation me-1"></i> Please upload a QR image or enter QR destination content!</div>';
+            return;
+        }
+
+        fetch("/api/qr-scan", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ qr_content: contentVal })
+        })
+        .then(function(res) { return res.json(); })
+        .then(renderQrResults)
+        .catch(function(err) {
+            box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> QR Scan failed: ' + escapeHtml(err.message) + '</div>';
+        });
+    }
+};
+
+function renderQrResults(data) {
+    var box = document.getElementById("qrScanResultsBox");
+    if (!box) return;
+
+    if (data.status === "Error") {
+        box.innerHTML = '<div class="alert alert-danger p-3 mb-0"><strong>' + escapeHtml(data.qr_status) + '</strong><br>' + escapeHtml(data.recommendation) + '</div>';
         return;
     }
 
-    box.innerHTML = '<div class="text-cyan font-weight-bold p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>Analyzing code syntax for SQLi, XSS, and Command Injections...</div>';
+    var badgeClass = "bg-success";
+    var riskColor = "text-success";
 
-    fetch("/api/input-scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input_text: codeVal })
-    })
-    .then(function(res) {
-        if (!res.ok) throw new Error("HTTP error " + res.status);
-        return res.json();
-    })
-    .then(function(data) {
-        var statusBadgeClass = "bg-success";
-        var statusIcon = "fa-circle-check";
+    if (data.status === "Suspicious" || data.risk_level === "Medium") {
+        badgeClass = "bg-warning text-dark";
+        riskColor = "text-warning";
+    } else if (data.status === "Potentially Malicious" || data.risk_level === "High") {
+        badgeClass = "bg-danger";
+        riskColor = "text-danger";
+    }
 
-        if (data.status === "MALICIOUS_CODE_ALERT") {
-            statusBadgeClass = "bg-danger";
-            statusIcon = "fa-triangle-exclamation";
-        } else if (data.status === "SUSPICIOUS_CODE_DETECTED") {
-            statusBadgeClass = "bg-warning text-dark";
-            statusIcon = "fa-triangle-exclamation";
-        }
+    var threatsHtml = "";
+    if (data.threats && data.threats.length > 0) {
+        threatsHtml = '<div class="mt-2 text-danger small"><strong>Detected Risks:</strong> ' + data.threats.map(escapeHtml).join(", ") + '</div>';
+    }
 
-        var threatListHtml = "";
-        if (!data.threats_found || data.threats_found.length === 0) {
-            threatListHtml = '<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>CLEAN & SAFE:</strong> No malicious injection payloads or dangerous code syntax detected.</div>';
-        } else {
-            for (var i = 0; i < data.threats_found.length; i++) {
-                var t = data.threats_found[i];
-                var badgeColor = (t.severity === 'CRITICAL') ? 'bg-danger' : 'bg-warning text-dark';
-                threatListHtml += '<div class="alert alert-danger p-2 mb-2"><span class="badge ' + badgeColor + ' me-2">' + escapeHtml(t.severity) + '</span> <strong>[' + escapeHtml(t.type) + ']</strong> ' + escapeHtml(t.rule) + ': ' + escapeHtml(t.description) + '</div>';
-            }
-        }
+    var html = '<div class="p-2 mb-3 rounded ' + badgeClass + ' font-weight-bold text-center fs-5">' +
+        escapeHtml(data.qr_status) +
+        '</div>' +
 
-        var html = '<div class="d-flex justify-content-between align-items-center mb-3">' +
-            '<div><span class="badge ' + statusBadgeClass + ' p-2 fs-6"><i class="fa-solid ' + statusIcon + ' me-1"></i> ' + escapeHtml(data.status) + '</span></div>' +
-            '<div class="text-white fs-6">Safety Score: <strong class="fs-5 text-cyan">' + data.threat_score + '/100</strong></div>' +
-            '</div>' +
-            threatListHtml +
-            '<div class="small text-light-slate mt-2 border-top border-secondary pt-2">' +
-            '<strong>Security Recommendation:</strong> ' + escapeHtml(data.recommendation) +
-            '</div>';
+        '<div class="mb-2 text-light-slate"><strong>Destination:</strong><br>' +
+        '<code class="text-cyan fs-6 word-break-all">' + escapeHtml(data.destination) + '</code></div>' +
 
-        box.innerHTML = html;
-    })
-    .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + escapeHtml(err.message) + '</div>';
-    });
-};
+        '<div class="mb-2 text-light-slate"><strong>Risk Level:</strong> ' +
+        '<span class="fw-bold ' + riskColor + '">' + escapeHtml(data.risk_level) + '</span></div>' +
+
+        threatsHtml +
+
+        '<div class="mt-3 pt-2 border-top border-secondary text-light-slate small">' +
+        '<strong>Recommendation:</strong><br>' +
+        escapeHtml(data.recommendation) +
+        '</div>';
+
+    box.innerHTML = html;
+}
 
 // Aliases for inline scope
 function runPasswordScan() { window.runPasswordScan(); }
 function runUrlScan() { window.runUrlScan(); }
-function runInputCodeScan() { window.runInputCodeScan(); }
+function runQrScan() { window.runQrScan(); }
 function setPresetPassword(t) { window.setPresetPassword(t); }
 function setPresetUrl(t) { window.setPresetUrl(t); }
-function setPresetCode(t) { window.setPresetCode(t); }
+function setPresetQr(t) { window.setPresetQr(t); }
 
 // Event listeners setup & auto-scan initial execution
 function initDashboardScanners() {
@@ -448,8 +480,11 @@ function initDashboardScanners() {
     var btnUrl = document.getElementById("btnUrlScan");
     if (btnUrl) btnUrl.addEventListener("click", function() { window.runUrlScan(); });
 
-    var btnCode = document.getElementById("btnInputCodeScan");
-    if (btnCode) btnCode.addEventListener("click", function() { window.runInputCodeScan(); });
+    var btnQr = document.getElementById("btnQrScan");
+    if (btnQr) btnQr.addEventListener("click", function() { window.runQrScan(); });
+
+    var fileInput = document.getElementById("qrFileInput");
+    if (fileInput) fileInput.addEventListener("change", function() { window.runQrScan(); });
 
     var pwdInput = document.getElementById("pwdScanInput");
     if (pwdInput) pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runPasswordScan(); });
@@ -457,10 +492,13 @@ function initDashboardScanners() {
     var urlInput = document.getElementById("urlScanInput");
     if (urlInput) urlInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runUrlScan(); });
 
+    var qrInput = document.getElementById("qrTextInput");
+    if (qrInput) qrInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runQrScan(); });
+
     // Auto-run initial scans on page load for immediate results
     window.runPasswordScan();
     window.runUrlScan();
-    window.runInputCodeScan();
+    window.runQrScan();
 }
 
 if (document.readyState === "loading") {

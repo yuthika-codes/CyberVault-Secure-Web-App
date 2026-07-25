@@ -156,25 +156,27 @@ class CyberVaultRequirement5TestCase(unittest.TestCase):
         self.assertEqual(strong_data['status'], 'STRONG')
         self.assertGreaterEqual(strong_data['score'], 90)
 
-    def test_malicious_code_and_input_security_scanner(self):
-        """Test Malicious Code Scanner API detecting SQLi, XSS, and Command Injection."""
-        # Test Malicious SQLi and Command Injection Payload
-        malicious_res = self.app.post('/api/input-scan', json={
-            'input_text': "SELECT * FROM users WHERE '1'='1'; ping 127.0.0.1; cat /etc/passwd"
+    def test_qr_code_safety_scanner(self):
+        """Test QR Code Safety Scanner API detecting safe vs malicious QR destination URLs."""
+        # Test Malicious QR URL Payload (.exe download)
+        malicious_res = self.app.post('/api/qr-scan', json={
+            'qr_content': "http://download-free-security-app.com/update.exe"
         })
         self.assertEqual(malicious_res.status_code, 200)
         mal_data = json.loads(malicious_res.data)
-        self.assertEqual(mal_data['status'], 'MALICIOUS_CODE_ALERT')
-        self.assertLess(mal_data['threat_score'], 60)
+        self.assertEqual(mal_data['status'], 'Potentially Malicious')
+        self.assertEqual(mal_data['risk_level'], 'High')
 
-        # Test Safe Input Text
-        safe_res = self.app.post('/api/input-scan', json={
-            'input_text': "Hello, welcome to my secure application user portal."
+        # Test Safe QR URL
+        safe_res = self.app.post('/api/qr-scan', json={
+            'qr_content': "https://example.com"
         })
         self.assertEqual(safe_res.status_code, 200)
         safe_data = json.loads(safe_res.data)
-        self.assertEqual(safe_data['status'], 'SAFE')
-        self.assertEqual(safe_data['threat_score'], 100)
+        self.assertEqual(safe_data['status'], 'Safe')
+        self.assertEqual(safe_data['risk_level'], 'Low')
+        self.assertEqual(safe_data['recommendation'], 'This QR code appears safe.')
+
 
     def test_oauth_google_sso_flow(self):
         """Test simulated Google OAuth 2.0 SSO sign-in."""

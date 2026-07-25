@@ -617,101 +617,189 @@ def api_password_scan():
 
 
 # ==========================
-# Malicious Code & Input Security Scanner API
+# QR Code Safety Scanner API
 # ==========================
 
-@app.route("/api/input-scan", methods=["POST"])
-def api_input_scan():
-    """Malicious Code & Input Security Scanner Engine."""
-    data = request.get_json(silent=True, force=True)
-    if not data or not isinstance(data, dict):
-        data = request.form
+@app.route("/api/qr-scan", methods=["POST"])
+def api_qr_scan():
+    """QR Code Safety Scanner Engine (Decodes QR code images & checks URL safety)."""
+    import base64
+    import io
+    import cv2
+    import numpy as np
+    from PIL import Image
 
-    raw_input = (data.get("input_text") or data.get("text") or "").strip()
-    if not raw_input:
+    decoded_content = ""
+    decoded_via = "Manual Input"
+
+    # 1. Check if image file was uploaded
+    if "qr_file" in request.files:
+        file = request.files["qr_file"]
+        if file and file.filename != "":
+            try:
+                img_bytes = file.read()
+                pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                detector = cv2.QRCodeDetector()
+                val, points, straight_qrcode = detector.detectAndDecode(cv_img)
+                if val:
+                    decoded_content = val.strip()
+                    decoded_via = "Uploaded Image (Decoded)"
+                else:
+                    return jsonify({
+                        "status": "Suspicious",
+                        "qr_status": "⚠️ QR Code Status: DECODE FAILED",
+                        "destination": "N/A",
+                        "risk_level": "High",
+                        "recommendation": "Could not detect a valid QR code in the uploaded image. Please upload a clear QR code image or enter the content manually."
+                    }), 400
+            except Exception as e:
+                return jsonify({
+                    "status": "Error",
+                    "qr_status": "⚠️ QR Code Status: INVALID IMAGE",
+                    "destination": "N/A",
+                    "risk_level": "High",
+                    "recommendation": f"Failed to process image file: {str(e)}"
+                }), 400
+
+    # 2. Check JSON payload or form data
+    if not decoded_content:
+        data = request.get_json(silent=True, force=True)
+        if not data or not isinstance(data, dict):
+            data = request.form
+
+        raw_input = (data.get("qr_content") or data.get("url") or data.get("input_text") or data.get("text") or "").strip()
+        base64_img = data.get("qr_base64") or ""
+
+        if base64_img:
+            try:
+                if "," in base64_img:
+                    base64_img = base64_img.split(",")[1]
+                img_bytes = base64.b64decode(base64_img)
+                pil_img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+                cv_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                detector = cv2.QRCodeDetector()
+                val, points, straight_qrcode = detector.detectAndDecode(cv_img)
+                if val:
+                    decoded_content = val.strip()
+                    decoded_via = "Image Data (Decoded)"
+            except Exception:
+                pass
+
+        if not decoded_content and raw_input:
+            decoded_content = raw_input
+            decoded_via = "Direct Input"
+
+    if not decoded_content:
         return jsonify({
-            "status": "ERROR",
-            "threat_score": 0,
-            "threat_level": "NONE",
-            "threats_found": [{"type": "Empty Input", "severity": "INFO", "description": "Please enter text or code payload to analyze."}],
-            "recommendation": "Enter a string or code snippet to scan for SQLi, XSS, and Command Injection."
+            "status": "Error",
+            "qr_status": "⚠️ QR Code Status: NO INPUT",
+            "destination": "N/A",
+            "risk_level": "High",
+            "recommendation": "Please upload a QR code image or enter the destination URL/content to scan."
         }), 400
 
+    # 3. Analyze decoded QR content for suspicious patterns
+    target_url = decoded_content
     threats = []
     safety_score = 100
 
-    # 1. SQL Injection (SQLi) Patterns
-    sqli_patterns = [
-        (r"(\'|\")\s*(OR|AND)\s*(\'|\")?\s*(\d+|\w+)\s*=\s*(\'|\")?\s*(\d+|\w+)", "SQLi Tautology Pattern (' OR '1'='1)", "CRITICAL", "Attempts to bypass authentication queries by forcing a TRUE evaluation."),
-        (r"\b(UNION\s+SELECT|UNION\s+ALL\s+SELECT)\b", "SQLi UNION Attack Keyword", "CRITICAL", "Attempts to append unauthorized query results to existing database responses."),
-        (r"\b(DROP\s+TABLE|DROP\s+DATABASE|TRUNCATE\s+TABLE)\b", "SQLi Database Destruction Query", "CRITICAL", "Attempts to destroy or truncate database structures."),
-        (r"(--|\/\*|\*\/|;\s*SELECT|;\s*INSERT|;\s*UPDATE)", "SQL Inline Comment / Query Separator", "HIGH", "Uses SQL comment delimiters to truncate query execution.")
-    ]
+    is_url = target_url.startswith(("http://", "https://", "www.")) or "." in target_url.split("/")[0]
 
-    for pattern, rule_name, severity, desc in sqli_patterns:
-        if re.search(pattern, raw_input, re.IGNORECASE):
-            safety_score -= 30
-            threats.append({"type": "SQL Injection (SQLi)", "rule": rule_name, "severity": severity, "description": desc})
+    if is_url:
+        formatted_url = target_url
+        if not formatted_url.startswith(("http://", "https://")):
+            formatted_url = "http://" + formatted_url
 
-    # 2. Cross-Site Scripting (XSS) Patterns
-    xss_patterns = [
-        (r"<\s*script[^>]*>", "XSS <script> Tag Injection", "CRITICAL", "Injects executable JavaScript tag into client-side browser DOM."),
-        (r"javascript\s*:", "XSS JavaScript URI Scheme", "HIGH", "Executes inline script via URL scheme attribute."),
-        (r"\bon\w+\s*=\s*(\'|\"|`)[^'\"]*(\'|\"|`)", "XSS Event Handler Attribute (onerror/onload)", "HIGH", "Triggers script execution on DOM events."),
-        (r"<\s*iframe[^>]*>", "XSS Malicious iFrame Injection", "HIGH", "Embeds untrusted external frame content into host document.")
-    ]
+        try:
+            parsed = urlparse(formatted_url)
+            domain = parsed.netloc.lower() if parsed.netloc else target_url.lower()
+            path = parsed.path.lower() if parsed.path else ""
+        except Exception:
+            parsed = urlparse("http://" + target_url)
+            domain = target_url.lower()
+            path = ""
 
-    for pattern, rule_name, severity, desc in xss_patterns:
-        if re.search(pattern, raw_input, re.IGNORECASE):
+        # Pattern A: Malicious File Executable Download (.exe, .apk, .bat, .vbs)
+        malware_exts = [".exe", ".apk", ".bat", ".vbs", ".ps1", ".scr", ".cmd", ".jar"]
+        if any(path.endswith(ext) or ext in path for ext in malware_exts):
+            safety_score -= 70
+            threats.append("Direct Executable File Download Payload (.exe/.apk)")
+
+        # Pattern B: Raw IP Address Hostname
+        ip_pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        if re.match(ip_pattern, domain):
+            safety_score -= 40
+            threats.append("Raw IP Address Hostname")
+
+        # Pattern C: Brand Mimicking & Phishing Keywords
+        phishing_keywords = ["paypal", "bank", "verify", "secure", "login", "signin", "account", "update", "crypto", "wallet", "support"]
+        trusted_domains = ["paypal.com", "bankofamerica.com", "apple.com", "amazon.com", "netflix.com", "microsoft.com", "google.com", "github.com", "example.com"]
+        is_trusted = any(domain == td or domain.endswith("." + td) for td in trusted_domains)
+
+        if not is_trusted:
+            matched_keywords = [kw for kw in phishing_keywords if kw in domain or kw in path]
+            if len(matched_keywords) >= 2 or ("-" in domain and any(kw in domain for kw in phishing_keywords)):
+                safety_score -= 45
+                threats.append(f"Brand Mimicking & Phishing Keywords ({', '.join(matched_keywords)})")
+            elif len(matched_keywords) == 1:
+                safety_score -= 20
+                threats.append(f"Suspicious Sensitive Keyword ({matched_keywords[0]})")
+
+        # Pattern D: Unencrypted HTTP Connection
+        if parsed.scheme == "http" and not is_trusted:
+            safety_score -= 20
+            threats.append("Unencrypted HTTP Connection")
+
+        # Pattern E: High-Risk TLDs
+        high_risk_tlds = [".xyz", ".top", ".zip", ".club", ".work", ".cam", ".kim", ".tk", ".ml", ".ga"]
+        if any(domain.endswith(tld) for tld in high_risk_tlds):
             safety_score -= 25
-            threats.append({"type": "Cross-Site Scripting (XSS)", "rule": rule_name, "severity": severity, "description": desc})
+            threats.append("High-Risk Top-Level Domain (TLD)")
 
-    # 3. OS Command Injection Patterns
-    cmd_patterns = [
-        (r"(;|\&\&|\|\|)\s*(rm\s+-rf|cat\s+/etc/passwd|shutdown|format|wget|curl|nc\s+)", "OS Command Chaining Payload", "CRITICAL", "Attempts to execute arbitrary system shell commands on the server OS."),
-        (r"\b(powershell\s+-enc|cmd\.exe\s+/c|/bin/sh|/bin/bash)\b", "Shell Interpreter Execution Call", "CRITICAL", "Spawns interactive shell environment executable.")
-    ]
-
-    for pattern, rule_name, severity, desc in cmd_patterns:
-        if re.search(pattern, raw_input, re.IGNORECASE):
-            safety_score -= 35
-            threats.append({"type": "OS Command Injection", "rule": rule_name, "severity": severity, "description": desc})
-
-    # 4. Path Traversal (LFI / RFI) Patterns
-    path_patterns = [
-        (r"(\.\./\.\./|\.\.\\\.\.\\|/etc/passwd|c:\\windows\\system32)", "Path Traversal (LFI) File Path", "HIGH", "Attempts to traverse directory tree to read restricted system files.")
-    ]
-
-    for pattern, rule_name, severity, desc in path_patterns:
-        if re.search(pattern, raw_input, re.IGNORECASE):
-            safety_score -= 25
-            threats.append({"type": "Directory Path Traversal", "rule": rule_name, "severity": severity, "description": desc})
+    else:
+        # Non-URL plain text QR content
+        if any(kw in target_url.lower() for kw in ["<script>", "select ", "drop table", "union select"]):
+            safety_score -= 60
+            threats.append("Script / Injection Pattern in QR Text")
 
     safety_score = max(0, min(100, safety_score))
 
-    if safety_score >= 85:
-        status = "SAFE"
-        threat_level = "CLEAN"
-        recommendation = "Input text is clean and safe. No malicious code or injection patterns detected."
+    if safety_score >= 80:
+        status_text = "Safe"
+        qr_status = "✅ QR Code Status: SAFE"
+        risk_level = "Low"
+        recommendation = "This QR code appears safe."
     elif safety_score >= 50:
-        status = "SUSPICIOUS_CODE_DETECTED"
-        threat_level = "MEDIUM"
-        recommendation = "Suspicious code patterns detected. Sanitize input with HTML entity escaping and Jinja2 autoescaping."
+        status_text = "Suspicious"
+        qr_status = "⚠️ QR Code Status: SUSPICIOUS"
+        risk_level = "Medium"
+        recommendation = "Exercise caution: This QR code redirects to an unencrypted or suspicious link."
     else:
-        status = "MALICIOUS_CODE_ALERT"
-        threat_level = "CRITICAL"
-        recommendation = "DANGER! Malicious injection payload identified. Block payload execution immediately!"
+        status_text = "Potentially Malicious"
+        qr_status = "🚨 QR Code Status: POTENTIALLY MALICIOUS"
+        risk_level = "High"
+        recommendation = "DANGER: High risk of phishing attack or malicious file download!"
 
-    log_security_event(f"Input Code Scan Executed (Status: {status}, Score: {safety_score}/100)")
+    log_security_event(f"QR Code Scan Executed (Status: {status_text}, Risk: {risk_level})")
 
     return jsonify({
-        "status": status,
-        "threat_score": safety_score,
-        "threat_level": threat_level,
-        "input_preview": raw_input[:100],
-        "threats_found": threats,
-        "recommendation": recommendation
+        "status": status_text,
+        "qr_status": qr_status,
+        "destination": decoded_content,
+        "risk_level": risk_level,
+        "recommendation": recommendation,
+        "threats": threats,
+        "decoded_via": decoded_via,
+        "safety_score": safety_score
     })
+
+
+@app.route("/api/input-scan", methods=["POST"])
+def api_input_scan():
+    """Backwards compatibility alias mapping to /api/qr-scan."""
+    return api_qr_scan()
+
 
 
 # ==========================
