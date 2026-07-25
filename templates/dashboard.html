@@ -173,12 +173,9 @@
 
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
-<!-- JAVASCRIPT FOR SECURE FUNCTIONALITY -->
 <script>
-window.toggleScanPasswordVisibility = function() {
+function toggleScanPasswordVisibility() {
     var input = document.getElementById("pwdScanInput");
     var icon = document.getElementById("pwdEyeIcon");
     if (!input) return;
@@ -195,12 +192,12 @@ window.toggleScanPasswordVisibility = function() {
             icon.classList.add("fa-eye");
         }
     }
-};
+}
 
 // -------------------------------------------------------------
 // TAB 1: PASSWORD SECURITY SCANNER
 // -------------------------------------------------------------
-window.setPresetPassword = function(type) {
+function setPresetPassword(type) {
     var input = document.getElementById("pwdScanInput");
     if (!input) return;
     if (type === 'weak') {
@@ -210,10 +207,10 @@ window.setPresetPassword = function(type) {
     } else if (type === 'strong') {
         input.value = "CyberV@ult#2026!";
     }
-    window.runPasswordScan();
-};
+    runPasswordScan();
+}
 
-window.runPasswordScan = function() {
+function runPasswordScan() {
     var input = document.getElementById("pwdScanInput");
     var box = document.getElementById("pwdScanResultsBox");
     if (!input || !box) return;
@@ -287,12 +284,12 @@ window.runPasswordScan = function() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
-};
+}
 
 // -------------------------------------------------------------
 // TAB 2: PHISHING & URL SCANNER
 // -------------------------------------------------------------
-window.setPresetUrl = function(type) {
+function setPresetUrl(type) {
     var input = document.getElementById("urlScanInput");
     if (!input) return;
     if (type === 'safe') {
@@ -302,10 +299,10 @@ window.setPresetUrl = function(type) {
     } else if (type === 'ip') {
         input.value = "http://192.168.1.50/bank-signin/secure";
     }
-    window.runUrlScan();
-};
+    runUrlScan();
+}
 
-window.runUrlScan = function() {
+function runUrlScan() {
     var input = document.getElementById("urlScanInput");
     var box = document.getElementById("urlScanResultsBox");
     if (!input || !box) return;
@@ -367,12 +364,12 @@ window.runUrlScan = function() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
-};
+}
 
 // -------------------------------------------------------------
 // TAB 3: MALICIOUS CODE SCANNER
 // -------------------------------------------------------------
-window.setPresetCode = function(type) {
+function setPresetCode(type) {
     var input = document.getElementById("inputCodeScanInput");
     if (!input) return;
     if (type === 'sqli') {
@@ -384,10 +381,10 @@ window.setPresetCode = function(type) {
     } else if (type === 'safe') {
         input.value = "Welcome to CyberVault Security Application. Please enter search query.";
     }
-    window.runInputCodeScan();
-};
+    runInputCodeScan();
+}
 
-window.runInputCodeScan = function() {
+function runInputCodeScan() {
     var input = document.getElementById("inputCodeScanInput");
     var box = document.getElementById("inputCodeScanResultsBox");
     if (!input || !box) return;
@@ -446,36 +443,6 @@ window.runInputCodeScan = function() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
-};
-
-// -------------------------------------------------------------
-// INITIALIZE EVENT LISTENERS & PROMPT READINESS
-// -------------------------------------------------------------
-function initScanners() {
-    var btnPwd = document.getElementById("btnPasswordScan");
-    if (btnPwd) btnPwd.onclick = function() { window.runPasswordScan(); };
-
-    var btnUrl = document.getElementById("btnUrlScan");
-    if (btnUrl) btnUrl.onclick = function() { window.runUrlScan(); };
-
-    var btnInput = document.getElementById("btnInputCodeScan");
-    if (btnInput) btnInput.onclick = function() { window.runInputCodeScan(); };
-
-    var pwdInput = document.getElementById("pwdScanInput");
-    if (pwdInput) {
-        pwdInput.onkeyup = function(e) { if (e.key === "Enter") window.runPasswordScan(); };
-    }
-
-    var urlInput = document.getElementById("urlScanInput");
-    if (urlInput) {
-        urlInput.onkeyup = function(e) { if (e.key === "Enter") window.runUrlScan(); };
-    }
-}
-
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initScanners);
-} else {
-    initScanners();
 }
 </script>
 {% endblock %}
