@@ -64,7 +64,7 @@
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Candidate Password to Scan</label>
                         <div class="position-relative mb-3">
-                            <input type="password" id="pwdScanInput" class="form-input pe-5" value="123456" placeholder="Enter password to evaluate security strength...">
+                            <input type="password" id="pwdScanInput" class="form-input pe-5" placeholder="Enter password to evaluate security strength...">
                             <i class="fa-solid fa-eye position-absolute top-50 end-0 translate-middle-y me-3 text-light-slate" id="pwdEyeIcon" onclick="toggleScanPasswordVisibility()" style="cursor: pointer;"></i>
                         </div>
 
@@ -83,8 +83,8 @@
                         <label class="form-label-access mb-2">Security Evaluation Report</label>
                         <div class="bg-black p-4 rounded border border-secondary" id="pwdScanResultsBox" style="min-height: 220px;">
                             <div class="text-light-slate text-center py-4">
-                                <i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>
-                                Initializing Password Security Scanner...
+                                <i class="fa-solid fa-shield-cat fa-2x mb-2 text-cyan"></i><br>
+                                Enter a password and click <strong>"Scan Password Security & Leak Risk"</strong>.
                             </div>
                         </div>
                     </div>
@@ -105,7 +105,7 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Target Website URL</label>
-                        <input type="text" id="urlScanInput" class="form-input mb-3" value="http://paypal-security-account-verify.xyz/login.php" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
+                        <input type="text" id="urlScanInput" class="form-input mb-3" placeholder="e.g. https://google.com or http://paypal-verify-login.xyz">
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
                             <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetUrl('safe')">🟢 Safe Website (GitHub)</button>
@@ -122,8 +122,8 @@
                         <label class="form-label-access mb-2">URL Safety Analysis</label>
                         <div class="bg-black p-4 rounded border border-secondary" id="urlScanResultsBox" style="min-height: 220px;">
                             <div class="text-light-slate text-center py-4">
-                                <i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>
-                                Initializing URL Phishing Inspector...
+                                <i class="fa-solid fa-magnifying-glass-location fa-2x mb-2 text-cyan"></i><br>
+                                Enter a website URL and click <strong>"Scan URL for Phishing & Threats"</strong>.
                             </div>
                         </div>
                     </div>
@@ -144,7 +144,7 @@
                 <div class="row g-4">
                     <div class="col-lg-6">
                         <label class="form-label-access mb-2">Payload / Input Text to Scan</label>
-                        <textarea id="inputCodeScanInput" class="form-input mb-3" rows="4" placeholder="Enter text, search query, or code snippet to analyze for malicious code...">SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --</textarea>
+                        <textarea id="inputCodeScanInput" class="form-input mb-3" rows="4" placeholder="Enter text, search query, or code snippet to analyze for malicious code..."></textarea>
 
                         <div class="d-flex gap-2 mb-3 flex-wrap">
                             <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetCode('sqli')">🔴 SQL Injection Payload</button>
@@ -162,8 +162,8 @@
                         <label class="form-label-access mb-2">Code Analysis & Threat Report</label>
                         <div class="bg-black p-4 rounded border border-secondary" id="inputCodeScanResultsBox" style="min-height: 220px;">
                             <div class="text-light-slate text-center py-4">
-                                <i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>
-                                Initializing Input Security Scanner...
+                                <i class="fa-solid fa-terminal fa-2x mb-2 text-cyan"></i><br>
+                                Enter text or code and click <strong>"Scan Input for Malicious Code"</strong>.
                             </div>
                         </div>
                     </div>
@@ -220,18 +220,21 @@ window.runPasswordScan = function() {
 
     var pwdVal = input.value;
     if (!pwdVal || !pwdVal.trim()) {
-        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a password to scan!</div>';
+        box.innerHTML = '<div class="text-warning font-weight-bold p-3 text-center"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a password to scan!</div>';
         return;
     }
 
-    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing password entropy, wordlists, and crack time...</div>';
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>Analyzing password entropy, wordlists, and crack time...</div>';
 
     fetch("/api/password-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: pwdVal })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+    })
     .then(function(data) {
         var statusBadgeClass = "bg-success";
         var statusIcon = "fa-shield-check";
@@ -282,7 +285,7 @@ window.runPasswordScan = function() {
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
 };
 
@@ -309,18 +312,21 @@ window.runUrlScan = function() {
 
     var urlVal = input.value;
     if (!urlVal || !urlVal.trim()) {
-        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a website URL to scan!</div>';
+        box.innerHTML = '<div class="text-warning font-weight-bold p-3 text-center"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter a website URL to scan!</div>';
         return;
     }
 
-    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing URL domain, protocol, and phishing reputation...</div>';
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>Analyzing URL domain, protocol, and phishing reputation...</div>';
 
     fetch("/api/url-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: urlVal })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+    })
     .then(function(data) {
         var statusBadgeClass = "bg-success";
         var statusIcon = "fa-circle-check";
@@ -359,7 +365,7 @@ window.runUrlScan = function() {
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
 };
 
@@ -388,18 +394,21 @@ window.runInputCodeScan = function() {
 
     var codeVal = input.value;
     if (!codeVal || !codeVal.trim()) {
-        box.innerHTML = '<div class="text-warning font-weight-bold p-2"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text or code payload to scan!</div>';
+        box.innerHTML = '<div class="text-warning font-weight-bold p-3 text-center"><i class="fa-solid fa-circle-exclamation me-1"></i> Please enter text or code payload to scan!</div>';
         return;
     }
 
-    box.innerHTML = '<div class="text-cyan font-weight-bold p-2"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing code syntax for SQLi, XSS, and Command Injections...</div>';
+    box.innerHTML = '<div class="text-cyan font-weight-bold p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x mb-2 text-cyan"></i><br>Analyzing code syntax for SQLi, XSS, and Command Injections...</div>';
 
     fetch("/api/input-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input_text: codeVal })
     })
-    .then(function(res) { return res.json(); })
+    .then(function(res) {
+        if (!res.ok) throw new Error("HTTP error " + res.status);
+        return res.json();
+    })
     .then(function(data) {
         var statusBadgeClass = "bg-success";
         var statusIcon = "fa-circle-check";
@@ -435,39 +444,38 @@ window.runInputCodeScan = function() {
         box.innerHTML = html;
     })
     .catch(function(err) {
-        box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
+        box.innerHTML = '<div class="text-danger p-3 text-center"><i class="fa-solid fa-triangle-exclamation me-1"></i> Scan failed: ' + err.message + '</div>';
     });
 };
 
 // -------------------------------------------------------------
-// AUTO-INITIALIZE ALL 3 SCANNERS ON PAGE LOAD & BIND EVENTS
+// INITIALIZE EVENT LISTENERS & PROMPT READINESS
 // -------------------------------------------------------------
-document.addEventListener("DOMContentLoaded", function() {
-    // Run initial scans immediately so reports are ready on load
-    window.runPasswordScan();
-    window.runUrlScan();
-    window.runInputCodeScan();
-
-    // Explicit click listener bindings for extra reliability
+function initScanners() {
     var btnPwd = document.getElementById("btnPasswordScan");
-    if (btnPwd) btnPwd.addEventListener("click", window.runPasswordScan);
+    if (btnPwd) btnPwd.onclick = function() { window.runPasswordScan(); };
 
     var btnUrl = document.getElementById("btnUrlScan");
-    if (btnUrl) btnUrl.addEventListener("click", window.runUrlScan);
+    if (btnUrl) btnUrl.onclick = function() { window.runUrlScan(); };
 
     var btnInput = document.getElementById("btnInputCodeScan");
-    if (btnInput) btnInput.addEventListener("click", window.runInputCodeScan);
+    if (btnInput) btnInput.onclick = function() { window.runInputCodeScan(); };
 
-    // Attach Enter key listeners to inputs
     var pwdInput = document.getElementById("pwdScanInput");
     if (pwdInput) {
-        pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runPasswordScan(); });
+        pwdInput.onkeyup = function(e) { if (e.key === "Enter") window.runPasswordScan(); };
     }
 
     var urlInput = document.getElementById("urlScanInput");
     if (urlInput) {
-        urlInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runUrlScan(); });
+        urlInput.onkeyup = function(e) { if (e.key === "Enter") window.runUrlScan(); };
     }
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initScanners);
+} else {
+    initScanners();
+}
 </script>
 {% endblock %}
