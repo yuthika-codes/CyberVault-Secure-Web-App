@@ -1,326 +1,211 @@
 {% extends "base.html" %}
 
-{% block title %}Security Dashboard | CyberVault{% endblock %}
+{% block title %}Dashboard | CyberVault Intern Project{% endblock %}
 
 {% block content %}
 <div class="dashboard-wrapper">
-    <!-- DASHBOARD HEADER HERO -->
-    <div class="dashboard-header">
+    <!-- WELCOME BANNER -->
+    <div class="dashboard-header mb-4">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="user-hero-info">
-                <h1 class="h2 font-weight-bold mb-1">
-                    <i class="fa-solid fa-shield-halved text-cyan me-2"></i>
-                    CyberVault SOC Dashboard
+            <div>
+                <h1 class="h2 font-weight-bold text-white mb-1">
+                    <i class="fa-solid fa-shield-halved text-cyan me-2"></i> CyberVault Security Dashboard
                 </h1>
-                <p class="text-muted mb-0">
-                    Logged in as <strong>{{ user.fullname }}</strong> ({{ user.email }})
+                <p class="text-light-slate mb-0 fs-5">
+                    Welcome back, <strong class="text-cyan">{{ user.fullname }}</strong>! ({{ user.email }})
                 </p>
             </div>
-            <div class="user-badges d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
                 {% if user.role == 'admin' %}
-                    <span class="badge bg-danger p-2 px-3 fs-6">
-                        <i class="fa-solid fa-crown me-1"></i> ADMIN ROLE
-                    </span>
+                    <span class="badge bg-danger p-2 px-3 fs-6"><i class="fa-solid fa-crown me-1"></i> ADMIN</span>
                 {% else %}
-                    <span class="badge bg-primary p-2 px-3 fs-6">
-                        <i class="fa-solid fa-user me-1"></i> USER ROLE
-                    </span>
+                    <span class="badge bg-primary p-2 px-3 fs-6"><i class="fa-solid fa-user me-1"></i> USER</span>
                 {% endif %}
-                <span class="status-badge">
-                    <i class="fa-solid fa-circle-check text-success me-1"></i> AES-256 Protected
-                </span>
+                <span class="status-badge"><i class="fa-solid fa-lock text-success me-1"></i> AES-256 Protected</span>
             </div>
         </div>
     </div>
 
-    <!-- TABBED NAVIGATION SYSTEM -->
-    <div class="soc-nav-tabs mt-4">
-        <ul class="nav nav-tabs custom-tabs" id="socTab" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
-                    <i class="fa-solid fa-chart-pie me-2"></i> Overview
+    <!-- SIMPLE 3-TAB NAVIGATION -->
+    <div class="soc-nav-tabs mb-4">
+        <ul class="nav nav-tabs custom-tabs" id="internTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button">
+                    <i class="fa-solid fa-vault me-2"></i> 1. Password & Secret Vault
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="vault-tab" data-bs-toggle="tab" data-bs-target="#vault" type="button" role="tab">
-                    <i class="fa-solid fa-vault me-2"></i> Encrypted Vault (AES-256)
+            <li class="nav-item">
+                <button class="nav-link" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner" type="button">
+                    <i class="fa-solid fa-bug-slash me-2"></i> 2. Security Vulnerability Scanner
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="jwt-tab" data-bs-toggle="tab" data-bs-target="#jwt" type="button" role="tab">
-                    <i class="fa-solid fa-key me-2"></i> JWT & API Studio
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="owasp-tab" data-bs-toggle="tab" data-bs-target="#owasp" type="button" role="tab">
-                    <i class="fa-solid fa-bug-slash me-2"></i> OWASP Inspector
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab">
-                    <i class="fa-solid fa-list-check me-2"></i> Audit Logs {% if user.role == 'admin' %}& Admin Panel{% endif %}
+            <li class="nav-item">
+                <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs" type="button">
+                    <i class="fa-solid fa-list-check me-2"></i> 3. Security Activity Logs
                 </button>
             </li>
         </ul>
     </div>
 
-    <!-- TAB CONTENTS -->
-    <div class="tab-content custom-tab-content mt-4" id="socTabContent">
+    <!-- TAB CONTENT -->
+    <div class="tab-content custom-tab-content" id="internTabContent">
 
-        <!-- ================= TAB 1: OVERVIEW ================= -->
-        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+        <!-- ================= TAB 1: PASSWORD & SECRET VAULT ================= -->
+        <div class="tab-pane fade show active" id="vault" role="tabpanel">
             <div class="row g-4">
-                <div class="col-md-3">
-                    <div class="info-card">
-                        <i class="fa-solid fa-users icon-blue"></i>
-                        <h5>Total System Users</h5>
-                        <h2>{{ total_users }}</h2>
+                <!-- ADD SECRET FORM -->
+                <div class="col-lg-5">
+                    <div class="soc-card">
+                        <h3 class="text-cyan mb-3">
+                            <i class="fa-solid fa-plus-circle me-2"></i> Add Password or Key
+                        </h3>
+                        <p class="text-light-slate small mb-4">
+                            Entries are automatically encrypted with <strong>AES-256 encryption</strong> before storing in the database.
+                        </p>
+                        <form action="{{ url_for('vault_add') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label-access">Title / Name</label>
+                                <input type="text" name="title" class="form-input" placeholder="e.g. Gmail Password or API Key" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-access">Category</label>
+                                <select name="category" class="form-input">
+                                    <option value="Password">Password</option>
+                                    <option value="API Key">API Key</option>
+                                    <option value="Private Note">Private Note</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label-access">Secret Value</label>
+                                <textarea name="raw_secret" class="form-input" rows="3" placeholder="Enter sensitive password or key..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn w-100">
+                                <i class="fa-solid fa-lock me-2"></i> Save & Encrypt Secret
+                            </button>
+                        </form>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="info-card">
-                        <i class="fa-solid fa-lock icon-green"></i>
-                        <h5>Encryption Standard</h5>
-                        <h2 class="text-success">AES-256</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="info-card">
-                        <i class="fa-solid fa-shield-virus icon-amber"></i>
-                        <h5>SQLi / OWASP Defense</h5>
-                        <h2 class="text-warning">ACTIVE</h2>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="info-card">
-                        <i class="fa-solid fa-clock-rotate-left icon-cyan"></i>
-                        <h5>Last Login</h5>
-                        <h6 class="mt-2 text-muted">{{ user.last_login or 'First Login' }}</h6>
-                    </div>
-                </div>
-            </div>
 
-            <!-- SECURITY FEATURES CARDS -->
-            <div class="dashboard-grid mt-4">
-                <div class="dashboard-card">
-                    <i class="fa-solid fa-user-lock"></i>
-                    <h3>RBAC Authorization</h3>
-                    <p>Role-Based Access Control enforcing strict separation between <code>Admin</code> and <code>User</code> permissions.</p>
-                </div>
-                <div class="dashboard-card">
-                    <i class="fa-solid fa-database"></i>
-                    <h3>Parametrized SQL Queries</h3>
-                    <p>SQLAlchemy 2.0 ORM abstracts database queries, preventing SQL Injection (SQLi) attacks.</p>
-                </div>
-                <div class="dashboard-card">
-                    <i class="fa-solid fa-key"></i>
-                    <h3>JWT Token Authentication</h3>
-                    <p>Stateless JSON Web Tokens with HS256 HMAC signature verification for API endpoints.</p>
-                </div>
-                <div class="dashboard-card">
-                    <i class="fa-solid fa-vault"></i>
-                    <h3>AES-256 Encrypted Storage</h3>
-                    <p>Fernet symmetric encryption protecting API keys and sensitive credentials in database storage.</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 2: ENCRYPTED VAULT (AES-256) ================= -->
-        <div class="tab-pane fade" id="vault" role="tabpanel">
-            <div class="vault-container">
-                <div class="row g-4">
-                    <!-- ADD SECRET FORM -->
-                    <div class="col-lg-5">
-                        <div class="soc-card">
-                            <h4 class="mb-3 text-cyan">
-                                <i class="fa-solid fa-plus-circle me-2"></i> Add Secret to Encrypted Vault
-                            </h4>
-                            <p class="text-muted small">
-                                Data is encrypted using <strong>AES-256 Fernet</strong> before write operations.
-                            </p>
-                            <form action="{{ url_for('vault_add') }}" method="POST">
-                                <div class="mb-3">
-                                    <label class="form-label text-muted">Secret Title</label>
-                                    <input type="text" name="title" class="form-input" placeholder="e.g. AWS Production API Key" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label text-muted">Category</label>
-                                    <select name="category" class="form-input">
-                                        <option value="API Key">API Key</option>
-                                        <option value="Database Password">Database Password</option>
-                                        <option value="OAuth Secret">OAuth Secret</option>
-                                        <option value="Private Note">Private Note</option>
-                                    </select>
-                                </div>
-                                <div class="mb-4">
-                                    <label class="form-label text-muted">Secret Value (Raw Text)</label>
-                                    <textarea name="raw_secret" class="form-input" rows="3" placeholder="Enter sensitive value to encrypt..." required></textarea>
-                                </div>
-                                <button type="submit" class="btn w-100">
-                                    <i class="fa-solid fa-lock me-2"></i> Encrypt & Save to Vault
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- VAULT SECRET LIST -->
-                    <div class="col-lg-7">
-                        <div class="soc-card">
-                            <h4 class="mb-3 text-cyan">
-                                <i class="fa-solid fa-vault me-2"></i> Your Encrypted Credentials ({{ secrets|length }})
-                            </h4>
-                            {% if not secrets %}
-                                <div class="text-center py-5 text-muted">
-                                    <i class="fa-solid fa-box-open fa-3x mb-3 text-secondary"></i>
-                                    <p>No secrets stored in your vault yet. Add one on the left!</p>
-                                </div>
-                            {% else %}
-                                <div class="vault-list">
-                                    {% for item in secrets %}
-                                        <div class="vault-item-card mb-3 p-3 border rounded-3 bg-dark-slate">
-                                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                                <div>
-                                                    <span class="badge bg-info me-2">{{ item.category }}</span>
-                                                    <strong class="fs-5">{{ item.title }}</strong>
-                                                </div>
-                                                <form action="{{ url_for('vault_delete', secret_id=item.id) }}" method="POST" class="d-inline">
-                                                    <button type="submit" class="btn-icon-danger" title="Delete Secret" onclick="return confirm('Delete this secret?')">
-                                                        <i class="fa-solid fa-trash"></i>
-                                                    </button>
-                                                </form>
+                <!-- VAULT SECRET LIST -->
+                <div class="col-lg-7">
+                    <div class="soc-card">
+                        <h3 class="text-cyan mb-3">
+                            <i class="fa-solid fa-vault me-2"></i> Saved Vault Credentials ({{ secrets|length }})
+                        </h3>
+                        {% if not secrets %}
+                            <div class="text-center py-5">
+                                <i class="fa-solid fa-box-open fa-3x mb-3 text-cyan"></i>
+                                <p class="text-light-slate fs-5">No secrets saved yet. Add your first password on the left!</p>
+                            </div>
+                        {% else %}
+                            <div class="vault-list">
+                                {% for item in secrets %}
+                                    <div class="vault-item-card mb-3 p-3 border rounded-3 bg-dark-slate">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <span class="badge bg-info text-dark font-weight-bold me-2">{{ item.category }}</span>
+                                                <strong class="fs-5 text-white">{{ item.title }}</strong>
                                             </div>
-                                            <div class="secret-value-box p-2 rounded bg-black d-flex align-items-center justify-content-between">
-                                                <code id="secret-val-{{ item.id }}" class="text-warning">••••••••••••••••••••</code>
-                                                <div>
-                                                    <button type="button" class="btn-sm btn-outline-cyan me-1" onclick="toggleSecretDisplay({{ item.id }}, '{{ item.decrypted_value }}')">
-                                                        <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> Show
-                                                    </button>
-                                                    <button type="button" class="btn-sm btn-outline-secondary" onclick="copyToClipboard('{{ item.decrypted_value }}')">
-                                                        <i class="fa-solid fa-copy"></i> Copy
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="mt-2 text-muted xsmall d-flex justify-content-between">
-                                                <span><i class="fa-solid fa-lock text-success me-1"></i> AES-256 Encrypted</span>
-                                                <span>Created: {{ item.created_at }}</span>
+                                            <form action="{{ url_for('vault_delete', secret_id=item.id) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn-icon-danger" title="Delete" onclick="return confirm('Delete this secret?')">
+                                                    <i class="fa-solid fa-trash fa-lg"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                        <div class="secret-value-box p-3 rounded bg-black d-flex align-items-center justify-content-between">
+                                            <code id="secret-val-{{ item.id }}" class="text-warning fs-6">••••••••••••••••••••</code>
+                                            <div>
+                                                <button type="button" class="btn-sm btn-outline-cyan me-1" onclick="toggleSecretDisplay({{ item.id }}, '{{ item.decrypted_value }}')">
+                                                    <i class="fa-solid fa-eye" id="eye-icon-{{ item.id }}"></i> Show
+                                                </button>
+                                                <button type="button" class="btn-sm btn-outline-light" onclick="copyToClipboard('{{ item.decrypted_value }}')">
+                                                    <i class="fa-solid fa-copy"></i> Copy
+                                                </button>
                                             </div>
                                         </div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
+                                        <div class="mt-2 xsmall d-flex justify-content-between text-light-slate">
+                                            <span><i class="fa-solid fa-shield text-success me-1"></i> AES-256 Encrypted</span>
+                                            <span>Date: {{ item.created_at }}</span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= TAB 3: JWT & API STUDIO ================= -->
-        <div class="tab-pane fade" id="jwt" role="tabpanel">
+        <!-- ================= TAB 2: SECURITY VULNERABILITY SCANNER ================= -->
+        <div class="tab-pane fade" id="scanner" role="tabpanel">
             <div class="soc-card">
-                <h4 class="mb-2 text-cyan">
-                    <i class="fa-solid fa-key me-2"></i> JWT Token & Bearer API Studio
-                </h4>
-                <p class="text-muted small">
-                    JSON Web Tokens (JWT) enable stateless API authentication using HS256 HMAC digital signatures.
+                <h3 class="text-cyan mb-2">
+                    <i class="fa-solid fa-bug-slash me-2"></i> Security Input Scanner (OWASP Top 10)
+                </h3>
+                <p class="text-light-slate mb-4">
+                    Test text for <strong>SQL Injection (SQLi)</strong> and <strong>Cross-Site Scripting (XSS)</strong> attacks.
                 </p>
 
-                <div class="row g-4 mt-2">
-                    <div class="col-md-6">
-                        <h5>Active Bearer Token</h5>
-                        <div class="bg-black p-3 rounded border border-cyan position-relative">
-                            <pre class="text-cyan small mb-0 text-wrap" style="word-break: break-all;" id="jwtTokenDisplay">{{ user_jwt }}</pre>
-                        </div>
-                        <button type="button" class="btn btn-sm btn2 mt-3" onclick="copyToClipboard('{{ user_jwt }}')">
-                            <i class="fa-solid fa-copy me-1"></i> Copy JWT Token
-                        </button>
-                    </div>
-
-                    <div class="col-md-6">
-                        <h5>Test Bearer API Request (`/api/secure-data`)</h5>
-                        <p class="text-muted small">Click below to send an HTTP GET request with <code>Authorization: Bearer &lt;Token&gt;</code> header.</p>
-                        <button type="button" class="btn btn-cyan text-dark font-weight-bold" onclick="testJwtApi()">
-                            <i class="fa-solid fa-paper-plane me-1"></i> Execute Protected API Call
-                        </button>
-
-                        <div class="mt-3">
-                            <label class="form-label text-muted small">Live Response Inspection:</label>
-                            <pre class="bg-black p-3 rounded text-success small" style="min-height: 120px;" id="apiConsoleResponse">// Click "Execute Protected API Call" to inspect response...</pre>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================= TAB 4: OWASP VULNERABILITY INSPECTOR ================= -->
-        <div class="tab-pane fade" id="owasp" role="tabpanel">
-            <div class="soc-card">
-                <h4 class="mb-2 text-cyan">
-                    <i class="fa-solid fa-bug-slash me-2"></i> OWASP Top 10 Vulnerability Inspector
-                </h4>
-                <p class="text-muted small">
-                    Test text inputs against heuristic threat detection patterns for <strong>SQL Injection (SQLi)</strong> and <strong>Cross-Site Scripting (XSS)</strong> attacks.
-                </p>
-
-                <div class="row g-4 mt-3">
+                <div class="row g-4">
                     <div class="col-lg-6">
-                        <label class="form-label text-muted">Payload Test Console</label>
-                        <textarea id="scanInput" class="form-input mb-3" rows="4" placeholder="Enter payload to inspect e.g. SELECT * FROM users; -- OR <script>alert('XSS')</script>"></textarea>
+                        <label class="form-label-access mb-2">Payload Test Console</label>
+                        <textarea id="scanInput" class="form-input mb-3" rows="4" placeholder="Enter text or click a quick test button below..."></textarea>
 
-                        <div class="d-flex gap-2 mb-3">
-                            <button type="button" class="btn btn-sm btn2" onclick="setPresetPayload('sqli')">Preset: SQLi Tautology</button>
-                            <button type="button" class="btn btn-sm btn2" onclick="setPresetPayload('xss')">Preset: XSS Script Tag</button>
-                            <button type="button" class="btn btn-sm btn2" onclick="setPresetPayload('safe')">Preset: Safe Text</button>
+                        <div class="d-flex gap-2 mb-3 flex-wrap">
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('sqli')">Test SQL Injection</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('xss')">Test XSS Attack</button>
+                            <button type="button" class="btn btn-sm btn2 text-white" onclick="setPresetPayload('safe')">Test Normal Text</button>
                         </div>
 
                         <button type="button" class="btn w-100" onclick="runOwaspScan()">
-                            <i class="fa-solid fa-magnifying-glass me-2"></i> Analyze Input Security
+                            <i class="fa-solid fa-magnifying-glass me-2"></i> Scan Input for Vulnerabilities
                         </button>
                     </div>
 
                     <div class="col-lg-6">
-                        <label class="form-label text-muted">Scan Results & Threat Matrix</label>
+                        <label class="form-label-access mb-2">Scan Results</label>
                         <div class="bg-black p-4 rounded border" id="scanResultsBox" style="min-height: 200px;">
-                            <div class="text-muted text-center py-4">Enter a payload and click "Analyze Input Security"</div>
+                            <div class="text-light-slate text-center py-4">Click "Scan Input for Vulnerabilities" to see security results.</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= TAB 5: AUDIT LOGS & ADMIN PANEL ================= -->
-        <div class="tab-pane fade" id="audit" role="tabpanel">
-            <!-- AUDIT LOGS -->
+        <!-- ================= TAB 3: SECURITY AUDIT LOGS ================= -->
+        <div class="tab-pane fade" id="logs" role="tabpanel">
+            <!-- USER AUDIT LOGS -->
             <div class="soc-card mb-4">
-                <h4 class="mb-3 text-cyan">
-                    <i class="fa-solid fa-list-check me-2"></i> Security Event Audit Stream
-                </h4>
+                <h3 class="text-cyan mb-3">
+                    <i class="fa-solid fa-list-check me-2"></i> Security Event Logs
+                </h3>
                 <div class="table-responsive">
                     <table class="table table-dark table-striped align-middle">
                         <thead>
                             <tr>
-                                <th># ID</th>
-                                <th>Event Description</th>
-                                <th>IP Address</th>
-                                <th>Status</th>
-                                <th>Timestamp (UTC)</th>
+                                <th class="text-cyan">#</th>
+                                <th class="text-cyan">Event Description</th>
+                                <th class="text-cyan">IP Address</th>
+                                <th class="text-cyan">Status</th>
+                                <th class="text-cyan">Time</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for log in audit_logs %}
                                 <tr>
-                                    <td>{{ log.id }}</td>
-                                    <td>{{ log.event }}</td>
-                                    <td><code>{{ log.ip_address }}</code></td>
+                                    <td class="text-white">{{ log.id }}</td>
+                                    <td class="text-white">{{ log.event }}</td>
+                                    <td><code class="text-warning fs-6">{{ log.ip_address }}</code></td>
                                     <td>
                                         {% if log.status == 'SUCCESS' %}
-                                            <span class="badge bg-success">SUCCESS</span>
+                                            <span class="badge bg-success p-2">SUCCESS</span>
                                         {% elif log.status == 'DENIED' or log.status == 'BLOCKED' %}
-                                            <span class="badge bg-danger">{{ log.status }}</span>
+                                            <span class="badge bg-danger p-2">{{ log.status }}</span>
                                         {% else %}
-                                            <span class="badge bg-warning text-dark">{{ log.status }}</span>
+                                            <span class="badge bg-warning text-dark p-2">{{ log.status }}</span>
                                         {% endif %}
                                     </td>
-                                    <td class="small text-muted">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td class="text-light-slate small">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
@@ -328,30 +213,30 @@
                 </div>
             </div>
 
-            <!-- ADMIN USER MANAGEMENT PANEL (ONLY SHOWN TO ADMINS) -->
+            <!-- ADMIN CONTROL PANEL (ADMIN ONLY) -->
             {% if user.role == 'admin' %}
                 <div class="soc-card border-danger">
-                    <h4 class="mb-3 text-danger">
-                        <i class="fa-solid fa-crown me-2"></i> Admin User Role & Access Controls
-                    </h4>
+                    <h3 class="text-danger mb-3">
+                        <i class="fa-solid fa-crown me-2"></i> Admin User Controls
+                    </h3>
                     <div class="table-responsive">
                         <table class="table table-dark align-middle">
                             <thead>
                                 <tr>
-                                    <th>User ID</th>
-                                    <th>Full Name</th>
-                                    <th>Email Address</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="text-danger">ID</th>
+                                    <th class="text-danger">Name</th>
+                                    <th class="text-danger">Email</th>
+                                    <th class="text-danger">Role</th>
+                                    <th class="text-danger">Status</th>
+                                    <th class="text-danger">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for u in all_users %}
                                     <tr>
-                                        <td>{{ u.id }}</td>
-                                        <td>{{ u.fullname }}</td>
-                                        <td>{{ u.email }}</td>
+                                        <td class="text-white">{{ u.id }}</td>
+                                        <td class="text-white">{{ u.fullname }}</td>
+                                        <td class="text-white">{{ u.email }}</td>
                                         <td>
                                             {% if u.role == 'admin' %}
                                                 <span class="badge bg-danger">ADMIN</span>
@@ -377,7 +262,7 @@
                                                     </button>
                                                 </form>
                                             {% else %}
-                                                <span class="small text-muted">(Current Account)</span>
+                                                <span class="small text-light-slate">(Current User)</span>
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -395,7 +280,6 @@
 
 {% block scripts %}
 <script>
-// Toggle secret decrypt visibility
 function toggleSecretDisplay(id, val) {
     const el = document.getElementById("secret-val-" + id);
     const icon = document.getElementById("eye-icon-" + id);
@@ -408,7 +292,6 @@ function toggleSecretDisplay(id, val) {
     }
 }
 
-// Copy to Clipboard utility
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         alert("Copied to clipboard!");
@@ -417,46 +300,23 @@ function copyToClipboard(text) {
     });
 }
 
-// Test JWT Bearer Token API
-function testJwtApi() {
-    const consoleBox = document.getElementById("apiConsoleResponse");
-    consoleBox.textContent = "// Sending Bearer HTTP Request...";
-
-    fetch("/api/secure-data", {
-        method: "GET",
-        headers: {
-            "Authorization": "Bearer {{ user_jwt }}",
-            "Content-Type": "application/json"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        consoleBox.textContent = JSON.stringify(data, null, 2);
-    })
-    .catch(err => {
-        consoleBox.textContent = "// API Error: " + err;
-    });
-}
-
-// OWASP Scan Presets
 function setPresetPayload(type) {
     const input = document.getElementById("scanInput");
     if (type === 'sqli') input.value = "SELECT * FROM users WHERE email = 'admin@example.com' OR '1'='1'; --";
-    if (type === 'xss') input.value = "<script>alert('XSS Vulnerability Test')</script>";
-    if (type === 'safe') input.value = "Hello CyberVault Administrator";
+    if (type === 'xss') input.value = "<script>alert('XSS Test')</script>";
+    if (type === 'safe') input.value = "Welcome to CyberVault Security Application";
 }
 
-// Run OWASP Scan
 function runOwaspScan() {
     const inputVal = document.getElementById("scanInput").value;
     const box = document.getElementById("scanResultsBox");
 
     if (!inputVal.trim()) {
-        box.innerHTML = `<div class="text-warning">Please enter text to scan!</div>`;
+        box.innerHTML = `<div class="text-warning font-weight-bold">Please enter text to scan!</div>`;
         return;
     }
 
-    box.innerHTML = `<div class="text-cyan"><i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing payload heuristic signatures...</div>`;
+    box.innerHTML = `<div class="text-cyan font-weight-bold"><i class="fa-solid fa-spinner fa-spin me-2"></i> Scanning payload for threats...</div>`;
 
     fetch("/api/scan", {
         method: "POST",
@@ -467,21 +327,21 @@ function runOwaspScan() {
     .then(data => {
         let threatHtml = "";
         if (data.threats_found.length === 0) {
-            threatHtml = `<div class="alert alert-success p-2 small mb-2"><i class="fa-solid fa-circle-check me-2"></i> No threats or injection signatures detected!</div>`;
+            threatHtml = `<div class="alert alert-success p-3 mb-2"><i class="fa-solid fa-circle-check me-2"></i> <strong>SAFE:</strong> No threats detected in input!</div>`;
         } else {
             data.threats_found.forEach(t => {
-                threatHtml += `<div class="alert alert-danger p-2 small mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> <strong>[${t.type}]</strong> ${t.description} (${t.severity})</div>`;
+                threatHtml += `<div class="alert alert-danger p-3 mb-2"><i class="fa-solid fa-triangle-exclamation me-2"></i> <strong>[${t.type}]</strong> ${t.description}</div>`;
             });
         }
 
         box.innerHTML = `
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fs-5">Status: <strong class="${data.status === 'SAFE' ? 'text-success' : 'text-danger'}">${data.status}</strong></span>
-                <span class="fs-5">Threat Score: <strong class="${data.threat_score >= 80 ? 'text-success' : 'text-danger'}">${data.threat_score}/100</strong></span>
+                <span class="fs-5 text-white">Status: <strong class="${data.status === 'SAFE' ? 'text-success' : 'text-danger'}">${data.status}</strong></span>
+                <span class="fs-5 text-white">Score: <strong class="${data.threat_score >= 80 ? 'text-success' : 'text-danger'}">${data.threat_score}/100</strong></span>
             </div>
             ${threatHtml}
-            <div class="small text-muted mt-2 border-top pt-2">
-                <strong>Defense Mechanism:</strong> ${data.recommendation}
+            <div class="small text-light-slate mt-2 border-top border-secondary pt-2">
+                <strong>Protection Note:</strong> ${data.recommendation}
             </div>
         `;
     })
@@ -489,17 +349,5 @@ function runOwaspScan() {
         box.innerHTML = `<div class="text-danger">Scan error: ${err}</div>`;
     });
 }
-
-// Activate URL hash tabs if present (e.g. #vault)
-document.addEventListener("DOMContentLoaded", function() {
-    const hash = window.location.hash;
-    if (hash) {
-        const tabBtn = document.querySelector(`button[data-bs-target="${hash}"]`);
-        if (tabBtn) {
-            const tab = new bootstrap.Tab(tabBtn);
-            tab.show();
-        }
-    }
-});
 </script>
 {% endblock %}

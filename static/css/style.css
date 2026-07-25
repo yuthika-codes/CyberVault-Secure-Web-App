@@ -1,19 +1,19 @@
 /* ==========================================================================
-   CYBERVAULT ENTERPRISE SOC SYSTEM & STYLES
+   CYBERVAULT ENTERPRISE SOC SYSTEM & STYLES (HIGH CONTRAST & LEGIBILITY)
    ========================================================================== */
 
 :root {
     --bg-dark: #0b0f19;
-    --bg-card: #151d2a;
+    --bg-card: #111827;
     --bg-nav: #0d131f;
     --accent-cyan: #38bdf8;
     --accent-cyan-glow: rgba(56, 189, 248, 0.4);
     --text-main: #ffffff;
-    --text-muted: #cbd5e1;
+    --text-muted: #e2e8f0;
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
-    --border-color: rgba(255, 255, 255, 0.12);
+    --border-color: rgba(255, 255, 255, 0.18);
 }
 
 * {
@@ -35,6 +35,11 @@ main {
     flex: 1;
 }
 
+/* HIGH CONTRAST UTILITIES */
+.text-cyan { color: #38bdf8 !important; }
+.text-light-slate { color: #e2e8f0 !important; }
+.font-weight-bold { font-weight: 700 !important; }
+
 /* ==========================================================================
    NAVIGATION BAR
    ========================================================================== */
@@ -45,8 +50,8 @@ main {
     align-items: center;
     padding: 18px 60px;
     background: var(--bg-nav);
-    border-bottom: 1px solid rgba(56, 189, 248, 0.15);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .brand-logo {
@@ -72,9 +77,9 @@ main {
 }
 
 .nav-link-item {
-    color: var(--text-muted);
+    color: #f1f5f9;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 15px;
     padding: 8px 16px;
     border-radius: 8px;
@@ -83,11 +88,11 @@ main {
 
 .nav-link-item:hover {
     color: var(--accent-cyan);
-    background: rgba(56, 189, 248, 0.08);
+    background: rgba(56, 189, 248, 0.15);
 }
 
 .nav-login-btn {
-    border: 1px solid var(--accent-cyan);
+    border: 2px solid var(--accent-cyan);
     color: var(--accent-cyan);
 }
 
@@ -97,9 +102,9 @@ main {
 }
 
 .nav-logout {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(239, 68, 68, 0.2);
     color: #fca5a5;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
 .nav-logout:hover {
@@ -119,27 +124,27 @@ main {
 
 .custom-alert {
     border-radius: 12px;
-    font-weight: 500;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     border: none;
 }
 
 .alert-success {
-    background: #064e3b;
-    color: #a7f3d0;
-    border-left: 4px solid var(--success);
+    background: #065f46;
+    color: #ffffff;
+    border-left: 5px solid var(--success);
 }
 
 .alert-danger {
-    background: #7f1d1d;
-    color: #fecaca;
-    border-left: 4px solid var(--danger);
+    background: #991b1b;
+    color: #ffffff;
+    border-left: 5px solid var(--danger);
 }
 
 .alert-warning {
-    background: #78350f;
-    color: #fde68a;
-    border-left: 4px solid var(--warning);
+    background: #92400e;
+    color: #ffffff;
+    border-left: 5px solid var(--warning);
 }
 
 /* ==========================================================================
@@ -175,7 +180,7 @@ main {
 
 .hero h2 {
     font-size: 28px;
-    color: var(--text-main);
+    color: #ffffff;
     font-weight: 600;
     margin-bottom: 20px;
 }
@@ -183,8 +188,8 @@ main {
 .hero p {
     margin: 20px auto 35px auto;
     line-height: 1.8;
-    color: var(--text-muted);
-    font-size: 17px;
+    color: #e2e8f0;
+    font-size: 18px;
     max-width: 720px;
 }
 
@@ -220,7 +225,7 @@ main {
 
 .btn2 {
     border: 2px solid var(--accent-cyan);
-    color: var(--text-main);
+    color: #ffffff;
     padding: 12px 28px;
     border-radius: 10px;
     text-decoration: none;
@@ -244,13 +249,13 @@ main {
     padding: 12px 24px;
     border-radius: 10px;
     text-decoration: none;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 15px;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .btn-google-sso:hover {
@@ -260,7 +265,7 @@ main {
 }
 
 /* ==========================================================================
-   FEATURES SECTION
+   FEATURES CARDS
    ========================================================================== */
 
 .features {
@@ -284,13 +289,13 @@ main {
     padding: 40px 30px;
     text-align: center;
     transition: all 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .feature-card:hover {
     transform: translateY(-8px);
-    border-color: rgba(56, 189, 248, 0.4);
-    box-shadow: 0 15px 35px rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 15px 35px rgba(56, 189, 248, 0.25);
 }
 
 .feature-card i {
@@ -299,16 +304,16 @@ main {
 }
 
 .feature-card h3 {
-    color: var(--text-main);
+    color: #ffffff;
     font-size: 22px;
     margin-bottom: 15px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .feature-card p {
-    color: var(--text-muted);
+    color: #e2e8f0;
     line-height: 1.7;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 /* ==========================================================================
@@ -328,13 +333,13 @@ main {
 .login-card {
     width: 100%;
     max-width: 480px;
-    background: rgba(21, 29, 42, 0.95);
+    background: rgba(17, 24, 39, 0.96);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.3);
     padding: 45px 40px;
     border-radius: 24px;
     text-align: center;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -350,12 +355,13 @@ main {
 .login-card h1 {
     font-size: 30px;
     font-weight: 700;
+    color: #ffffff;
     margin-bottom: 8px;
 }
 
 .register-card p,
 .login-card p {
-    color: var(--text-muted);
+    color: #e2e8f0;
     font-size: 15px;
     margin-bottom: 24px;
 }
@@ -363,12 +369,13 @@ main {
 .form-input {
     width: 100%;
     padding: 14px 18px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 12px;
     background: #0b0f19;
-    color: white;
+    color: #ffffff;
     outline: none;
     font-size: 15px;
+    font-weight: 500;
     transition: all 0.3s ease;
 }
 
@@ -387,7 +394,7 @@ main {
     right: 16px;
     top: 50%;
     transform: translateY(-50%);
-    color: #94a3b8;
+    color: #cbd5e1;
     cursor: pointer;
     font-size: 18px;
     transition: color 0.3s ease;
@@ -484,17 +491,17 @@ main {
 .strength-bar.strong { background-color: var(--success); }
 
 .strength-text {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
 }
 
 .password-requirements {
     text-align: left;
-    background: rgba(11, 15, 25, 0.6);
+    background: rgba(11, 15, 25, 0.8);
     padding: 12px 16px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .password-requirements ul {
@@ -505,7 +512,7 @@ main {
 
 .password-requirements li {
     font-size: 13px;
-    color: #94a3b8;
+    color: #e2e8f0;
     margin-bottom: 4px;
     display: flex;
     align-items: center;
@@ -513,7 +520,7 @@ main {
     transition: color 0.3s ease;
 }
 
-.password-requirements li.valid { color: #a7f3d0; }
+.password-requirements li.valid { color: #a7f3d0; font-weight: 600; }
 
 /* ==========================================================================
    DASHBOARD SOC & TABBED SYSTEM
@@ -530,30 +537,30 @@ main {
     border: 1px solid var(--border-color);
     border-radius: 20px;
     padding: 30px 35px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .status-badge {
     display: inline-flex;
     align-items: center;
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.4);
     color: #a7f3d0;
     padding: 8px 18px;
     border-radius: 30px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .custom-tabs {
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
 }
 
 .custom-tabs .nav-link {
-    color: var(--text-muted);
+    color: #e2e8f0;
     font-weight: 600;
-    font-size: 15px;
-    padding: 12px 20px;
+    font-size: 16px;
+    padding: 14px 24px;
     border: none;
     border-bottom: 3px solid transparent;
     background: transparent;
@@ -562,7 +569,7 @@ main {
 
 .custom-tabs .nav-link:hover {
     color: var(--accent-cyan);
-    border-bottom-color: rgba(56, 189, 248, 0.4);
+    border-bottom-color: rgba(56, 189, 248, 0.5);
 }
 
 .custom-tabs .nav-link.active {
@@ -575,81 +582,22 @@ main {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 30px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-}
-
-.info-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
-}
-
-.info-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--accent-cyan);
-}
-
-.info-card i {
-    font-size: 32px;
-    margin-bottom: 12px;
-}
-
-.icon-blue { color: var(--accent-cyan); }
-.icon-green { color: var(--success); }
-.icon-amber { color: var(--warning); }
-.icon-cyan { color: #06b6d4; }
-
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 24px;
-}
-
-.dashboard-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    padding: 28px 24px;
-    border-radius: 18px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.dashboard-card:hover {
-    transform: translateY(-6px);
-    border-color: var(--accent-cyan);
-    box-shadow: 0 12px 30px rgba(56, 189, 248, 0.2);
-}
-
-.dashboard-card i {
-    font-size: 40px;
-    color: var(--accent-cyan);
-    margin-bottom: 16px;
-}
-
-.dashboard-card h3 {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}
-
-.dashboard-card p {
-    color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.6;
+    padding: 32px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 /* Vault item cards */
-.bg-dark-slate { background: #0f172a; border-color: rgba(255, 255, 255, 0.08) !important; }
+.bg-dark-slate { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.12) !important; }
 .btn-icon-danger { background: transparent; border: none; color: #fca5a5; transition: color 0.2s; }
 .btn-icon-danger:hover { color: var(--danger); }
-.btn-outline-cyan { border: 1px solid var(--accent-cyan); color: var(--accent-cyan); background: transparent; }
+.btn-outline-cyan { border: 1px solid var(--accent-cyan); color: var(--accent-cyan); background: transparent; font-weight: 600; }
 .btn-outline-cyan:hover { background: var(--accent-cyan); color: #000; }
-.xsmall { font-size: 12px; }
+.xsmall { font-size: 13px; }
+
+/* Table legibility */
+.table { color: #ffffff !important; }
+.table th { color: var(--accent-cyan) !important; font-weight: 700; }
+.table td { color: #f1f5f9 !important; }
 
 /* ==========================================================================
    FOOTER
@@ -659,12 +607,11 @@ main {
     text-align: center;
     padding: 24px 20px;
     background: var(--bg-nav);
-    color: var(--text-muted);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
     font-size: 14px;
+    font-weight: 500;
 }
-
-.text-cyan { color: var(--accent-cyan) !important; }
 
 /* ==========================================================================
    KEYFRAME ANIMATIONS & RESPONSIVE DESIGN
