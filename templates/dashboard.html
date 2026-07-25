@@ -173,10 +173,12 @@
 
     </div>
 </div>
+{% endblock %}
 
-<!-- INLINE JAVASCRIPT FOR SECURE FUNCTIONALITY -->
+{% block scripts %}
+<!-- JAVASCRIPT FOR SECURE FUNCTIONALITY -->
 <script>
-function toggleScanPasswordVisibility() {
+window.toggleScanPasswordVisibility = function() {
     var input = document.getElementById("pwdScanInput");
     var icon = document.getElementById("pwdEyeIcon");
     if (!input) return;
@@ -193,12 +195,12 @@ function toggleScanPasswordVisibility() {
             icon.classList.add("fa-eye");
         }
     }
-}
+};
 
 // -------------------------------------------------------------
 // TAB 1: PASSWORD SECURITY SCANNER
 // -------------------------------------------------------------
-function setPresetPassword(type) {
+window.setPresetPassword = function(type) {
     var input = document.getElementById("pwdScanInput");
     if (!input) return;
     if (type === 'weak') {
@@ -208,10 +210,10 @@ function setPresetPassword(type) {
     } else if (type === 'strong') {
         input.value = "CyberV@ult#2026!";
     }
-    runPasswordScan();
-}
+    window.runPasswordScan();
+};
 
-function runPasswordScan() {
+window.runPasswordScan = function() {
     var input = document.getElementById("pwdScanInput");
     var box = document.getElementById("pwdScanResultsBox");
     if (!input || !box) return;
@@ -282,12 +284,12 @@ function runPasswordScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
     });
-}
+};
 
 // -------------------------------------------------------------
 // TAB 2: PHISHING & URL SCANNER
 // -------------------------------------------------------------
-function setPresetUrl(type) {
+window.setPresetUrl = function(type) {
     var input = document.getElementById("urlScanInput");
     if (!input) return;
     if (type === 'safe') {
@@ -297,10 +299,10 @@ function setPresetUrl(type) {
     } else if (type === 'ip') {
         input.value = "http://192.168.1.50/bank-signin/secure";
     }
-    runUrlScan();
-}
+    window.runUrlScan();
+};
 
-function runUrlScan() {
+window.runUrlScan = function() {
     var input = document.getElementById("urlScanInput");
     var box = document.getElementById("urlScanResultsBox");
     if (!input || !box) return;
@@ -359,12 +361,12 @@ function runUrlScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
     });
-}
+};
 
 // -------------------------------------------------------------
 // TAB 3: MALICIOUS CODE SCANNER
 // -------------------------------------------------------------
-function setPresetCode(type) {
+window.setPresetCode = function(type) {
     var input = document.getElementById("inputCodeScanInput");
     if (!input) return;
     if (type === 'sqli') {
@@ -376,10 +378,10 @@ function setPresetCode(type) {
     } else if (type === 'safe') {
         input.value = "Welcome to CyberVault Security Application. Please enter search query.";
     }
-    runInputCodeScan();
-}
+    window.runInputCodeScan();
+};
 
-function runInputCodeScan() {
+window.runInputCodeScan = function() {
     var input = document.getElementById("inputCodeScanInput");
     var box = document.getElementById("inputCodeScanResultsBox");
     if (!input || !box) return;
@@ -435,26 +437,36 @@ function runInputCodeScan() {
     .catch(function(err) {
         box.innerHTML = '<div class="text-danger p-2">Scan error: ' + err + '</div>';
     });
-}
+};
 
 // -------------------------------------------------------------
-// AUTO-INITIALIZE ALL 3 SCANNERS ON PAGE LOAD & KEYPRESS
+// AUTO-INITIALIZE ALL 3 SCANNERS ON PAGE LOAD & BIND EVENTS
 // -------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", function() {
     // Run initial scans immediately so reports are ready on load
-    runPasswordScan();
-    runUrlScan();
-    runInputCodeScan();
+    window.runPasswordScan();
+    window.runUrlScan();
+    window.runInputCodeScan();
+
+    // Explicit click listener bindings for extra reliability
+    var btnPwd = document.getElementById("btnPasswordScan");
+    if (btnPwd) btnPwd.addEventListener("click", window.runPasswordScan);
+
+    var btnUrl = document.getElementById("btnUrlScan");
+    if (btnUrl) btnUrl.addEventListener("click", window.runUrlScan);
+
+    var btnInput = document.getElementById("btnInputCodeScan");
+    if (btnInput) btnInput.addEventListener("click", window.runInputCodeScan);
 
     // Attach Enter key listeners to inputs
     var pwdInput = document.getElementById("pwdScanInput");
     if (pwdInput) {
-        pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") runPasswordScan(); });
+        pwdInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runPasswordScan(); });
     }
 
     var urlInput = document.getElementById("urlScanInput");
     if (urlInput) {
-        urlInput.addEventListener("keyup", function(e) { if (e.key === "Enter") runUrlScan(); });
+        urlInput.addEventListener("keyup", function(e) { if (e.key === "Enter") window.runUrlScan(); });
     }
 });
 </script>
