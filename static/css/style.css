@@ -674,3 +674,35 @@ main {
     .features { padding: 40px 20px; }
     .custom-tabs .nav-link { padding: 8px 12px; font-size: 13px; }
 }
+
+/* ==========================================================================
+   PASSWORD BOX & EYE ICON VISIBILITY TOGGLE STYLES
+   ========================================================================== */
+.password-box {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+.password-box .form-input {
+    padding-right: 48px !important;
+}
+
+.password-box .toggle-password {
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    cursor: pointer !important;
+    z-index: 50 !important;
+    color: #94a3b8 !important;
+    font-size: 1.15rem !important;
+    transition: color 0.2s ease, transform 0.2s ease !important;
+    user-select: none !important;
+    pointer-events: auto !important;
+}
+
+.password-box .toggle-password:hover {
+    color: #38bdf8 !important;
+    transform: translateY(-50%) scale(1.15) !important;
+}

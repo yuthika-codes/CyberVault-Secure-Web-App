@@ -19,6 +19,52 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Immediate Password Visibility Toggle Utility -->
+    <script>
+        window.togglePassword = function(inputId, iconElement) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+
+            if (!iconElement || !(iconElement instanceof HTMLElement)) {
+                var parent = input.closest(".password-box") || input.parentElement;
+                if (parent) {
+                    iconElement = parent.querySelector(".toggle-password, i.fa-eye, i.fa-eye-slash");
+                }
+            }
+
+            if (input.type === "password") {
+                input.type = "text";
+                if (iconElement) {
+                    iconElement.classList.remove("fa-eye");
+                    iconElement.classList.add("fa-eye-slash");
+                }
+            } else {
+                input.type = "password";
+                if (iconElement) {
+                    iconElement.classList.remove("fa-eye-slash");
+                    iconElement.classList.add("fa-eye");
+                }
+            }
+        };
+
+        // Automatic fallback listener attachment for all password toggle elements
+        document.addEventListener("DOMContentLoaded", function() {
+            var toggles = document.querySelectorAll(".toggle-password, [data-toggle-password]");
+            toggles.forEach(function(toggle) {
+                toggle.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    var parent = toggle.closest(".password-box") || toggle.parentElement;
+                    if (parent) {
+                        var input = parent.querySelector("input");
+                        if (input && input.id) {
+                            window.togglePassword(input.id, toggle);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
     {% block head %}{% endblock %}
 </head>
 <body>
@@ -86,51 +132,6 @@
 
     <!-- Bootstrap 5.3.3 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Universal Password Visibility Toggle Utility -->
-    <script>
-        window.togglePassword = function(inputId, iconElement) {
-            var input = document.getElementById(inputId);
-            if (!input) return;
-
-            if (!iconElement) {
-                var parent = input.closest(".password-box") || input.parentElement;
-                if (parent) {
-                    iconElement = parent.querySelector(".toggle-password, i.fa-eye, i.fa-eye-slash");
-                }
-            }
-
-            if (input.type === "password") {
-                input.type = "text";
-                if (iconElement) {
-                    iconElement.classList.remove("fa-eye");
-                    iconElement.classList.add("fa-eye-slash");
-                }
-            } else {
-                input.type = "password";
-                if (iconElement) {
-                    iconElement.classList.remove("fa-eye-slash");
-                    iconElement.classList.add("fa-eye");
-                }
-            }
-        };
-
-        // Automatic fallback listener attachment for all password toggle elements
-        document.addEventListener("DOMContentLoaded", function() {
-            var toggles = document.querySelectorAll(".toggle-password, [data-toggle-password]");
-            toggles.forEach(function(toggle) {
-                toggle.addEventListener("click", function(e) {
-                    var parent = toggle.closest(".password-box") || toggle.parentElement;
-                    if (parent) {
-                        var input = parent.querySelector("input");
-                        if (input && input.id) {
-                            window.togglePassword(input.id, toggle);
-                        }
-                    }
-                });
-            });
-        });
-    </script>
 
     {% block scripts %}{% endblock %}
 </body>
